@@ -3,6 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { PrismaClient } from "@prisma/client";
 import loginRoute from "./routes/loginRoute.js";
 import profileRoute from "./routes/profileRoute.js";
 import serviceRoute from "./routes/serviceRoute.js";
@@ -25,3 +26,15 @@ app.use(transparentRoute);
 app.use(socialRoute);
 
 app.listen(5000, () => console.log("Server runing"));
+const prisma = new PrismaClient();
+
+async function testDatabaseConnection() {
+  try {
+    await prisma.$connect();
+    console.log("Database connection successful");
+  } catch (error) {
+    console.error("Failed to connect to the database:", error);
+  }
+}
+
+testDatabaseConnection();
