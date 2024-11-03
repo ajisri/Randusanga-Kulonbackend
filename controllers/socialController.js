@@ -33,7 +33,9 @@ export const getAgendaPengunjung = async (req, res) => {
     res.status(200).json({ agenda });
   } catch (error) {
     console.error("Error saat mengambil data agenda untuk pengunjung:", error);
-    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    return res
+      .status(500)
+      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
   }
 };
 
@@ -85,7 +87,9 @@ export const getAgendaAdmin = async (req, res) => {
     res.status(200).json({ agenda });
   } catch (error) {
     console.error("Error saat mengambil data agenda untuk admin:", error);
-    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    return res
+      .status(500)
+      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
   }
 };
 
@@ -260,7 +264,9 @@ export const getPengumumanPengunjung = async (req, res) => {
       "Error saat mengambil data pengumuman untuk pengunjung:",
       error
     );
-    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    return res
+      .status(500)
+      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
   }
 };
 
@@ -505,7 +511,9 @@ export const getGaleriPengunjung = async (req, res) => {
     res.status(200).json({ galeris });
   } catch (error) {
     console.error("Error saat mengambil data galeri untuk pengunjung:", error);
-    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    return res
+      .status(500)
+      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
   }
 };
 
@@ -750,7 +758,9 @@ export const getBeritaPengunjung = async (req, res) => {
     res.status(200).json({ beritas });
   } catch (error) {
     console.error("Error saat mengambil data berita untuk pengunjung:", error);
-    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    return res
+      .status(500)
+      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
   }
 };
 
