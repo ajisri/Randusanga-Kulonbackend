@@ -9,8 +9,8 @@ import serviceRoute from "./routes/serviceRoute.js";
 import transparentRoute from "./routes/transparentRoute.js";
 import socialRoute from "./routes/socialRoute.js";
 dotenv.config();
-
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
+const databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_PUBLIC_URL;
+console.log("DATABASE_URL:", process.env.databaseUrl);
 
 const app = express();
 
