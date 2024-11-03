@@ -10,8 +10,6 @@ import transparentRoute from "./routes/transparentRoute.js";
 import socialRoute from "./routes/socialRoute.js";
 dotenv.config();
 console.log("DATABASE_URL:", process.env.DATABASE_URL);
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
 const app = express();
 
 app.use(cookieParser());
