@@ -734,6 +734,9 @@ export const deleteGaleri = async (req, res) => {
 
 //berita pengunjung
 export const getBeritaPengunjung = async (req, res) => {
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ msg: "DATABASE_URL tidak ditemukan" });
+  }
   try {
     // Ambil data dari tabel Berita
     const beritas = await prisma.berita.findMany({
