@@ -1,0 +1,397 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum EducationLevel {
+  SD
+  SMP
+  SMA
+  DIPLOMA
+  SARJANA
+  MAGISTER
+  DOKTOR
+}
+
+// Enum untuk status publikasi konten
+enum Status {
+  DRAFT
+  PUBLISH
+}
+
+// Tabel Administrator
+model Administrator {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @default(uuid()) @unique
+  name            String
+  username        String   @unique
+  email           String   @unique
+  password        String
+  role            String
+  created_at      DateTime @default(now())
+  created_by      String?  // Referensi ke siapa yang membuat Administrator
+  updated_by      String?  // Referensi ke siapa yang mengupdate Administrator
+  refresh_token   String?  @db.VarChar(255) @unique
+  profiles        Profile[]
+
+  @@index([email])
+  Lembaga Lembaga[]
+  VisiMisi VisiMisi[]
+  TugasPokok TugasPokok[]
+  ProdukHukum ProdukHukum[]
+  Agenda Agenda[]
+  ProfilLembaga ProfilLembaga[]
+  Anggota Anggota[]
+  Pengumuman Pengumuman[]
+  Galeri Galeri[]
+  Berita Berita[]
+  Keuangan Keuangan[]
+  Kategori Kategori[]
+  Subkategori Subkategori[]
+  BudgetItem BudgetItem[]
+}
+
+model User{
+  id Int @id @default(autoincrement())
+  uuid String @default(uuid()) @unique
+  name String
+  username String @unique
+  email String @unique
+  role String
+  password String
+  refresh_token String? @db.VarChar(255) @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+}
+
+// Tabel Profil dengan submenu
+model Profile {
+  id              Int             @id @default(autoincrement())
+  uuid            String          @default(uuid()) @unique
+  pname           String
+  title           String
+  content         String          @db.LongText
+  file_url        String?         // URL file yang di-upload
+  status          Status          @default(DRAFT)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  createdbyId Int
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+// Tabel Lembaga
+model Lembaga {
+  id            Int           @id @default(autoincrement())
+  uuid          String        @default(uuid()) @unique
+  nama          String
+  singkatan     String
+  dasar_hukum   String
+  alamat_kantor String
+  file_url        String?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+
+  // Always refer to an Administrator
+  createdbyId   Int
+  createdBy     Administrator  @relation(fields: [createdbyId], references: [id])
+  visi_misi     VisiMisi[]
+  profil_lembaga     ProfilLembaga[]
+  tugas_pokok   TugasPokok[]
+  Anggota Anggota[]
+}
+
+// Tabel ProfilLembaga
+model ProfilLembaga {
+  id            Int          @id @default(autoincrement())
+  uuid          String       @default(uuid()) @unique
+  lembagaId     String       @unique
+  lembaga       Lembaga      @relation(fields: [lembagaId], references: [uuid])
+  content       String       @db.LongText
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+  
+  // Relasi ke Administrator yang membuat visi misi
+  createdbyId   Int?
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+// Tabel Visi dan Misi
+model VisiMisi {
+  id            Int          @id @default(autoincrement())
+  uuid          String       @default(uuid()) @unique
+  lembagaId     String       @unique
+  lembaga       Lembaga      @relation(fields: [lembagaId], references: [uuid])
+  content       String       @db.LongText
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+  
+  // Relasi ke Administrator yang membuat visi misi
+  createdbyId   Int?
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+// Tabel Tugas Pokok
+model TugasPokok {
+  id            Int          @id @default(autoincrement())
+  uuid          String       @default(uuid()) @unique
+  lembagaId     String       @unique
+  lembaga       Lembaga      @relation(fields: [lembagaId], references: [uuid])
+  content       String       @db.LongText    // Digunakan untuk Quill Editor
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+  
+  // Relasi ke Administrator yang membuat tugas pokok
+  createdbyId   Int?
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+model Anggota {
+  id          Int        @id @default(autoincrement())
+  uuid        String     @default(uuid()) @unique
+  lembagaDesaid   String     
+  lembaga     Lembaga    @relation(fields: [lembagaDesaid], references: [uuid])
+  demografiDesaid String     
+  demografi   Demographics  @relation(fields: [demografiDesaid], references: [uuid])
+  jabatan     String
+  createdAt   DateTime   @default(now()) // otomatis menyimpan waktu pembuatan
+  updatedAt   DateTime   @updatedAt      // otomatis meng-update waktu perubahan
+  createdById Int        // foreign key untuk administrator yang membuat
+  createdBy   Administrator @relation(fields: [createdById], references: [id])
+}
+
+// Tabel Batas wilayah
+model BatasWilayah {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @default(uuid()) @unique
+  kategori     String   
+  nilai   String   
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model OrbitasiDesa {
+  id        Int       @id @default(autoincrement())
+  uuid      String    @default(uuid()) @unique
+  kategori  String    
+  nilai     String
+  satuan     String    
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model JenisLahan {
+  id        Int       @id @default(autoincrement())
+  uuid      String    @default(uuid()) @unique
+  jenis     String    
+  nama     String    
+  luas      Float     
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model PotensiWisata {
+  id        Int       @id @default(autoincrement())
+  uuid      String    @default(uuid()) @unique
+  jenis     String    // Contoh: "Laut"
+  luas      Float?    // Nullable, Contoh: 50 Ha
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Tabel Demografi dengan normalisasi data dan index pada NIK
+model Demographics {
+  id             Int           @id @default(autoincrement())
+  uuid           String        @default(uuid()) @unique
+  nik            String        @unique
+  name           String
+  gender         String        
+  birth_date     DateTime
+  marital_status String 
+  education_id   Int
+  education      Education  @relation(fields: [education_id], references: [id])
+  job            String
+  rt             String
+  rw             String
+  hamlet         String        // Dusun
+  status_aktif   String
+  tmt_status_aktif DateTime?
+  keterangan_status String?
+  file_url        String?
+  religion_id    Int
+  religion       Religion      @relation(fields: [religion_id], references: [id]) // Relasi ke Religion
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  created_by     String?
+  updated_by     String?
+
+  @@index([nik])
+  Anggota Anggota[]
+}
+
+// Tabel Agama untuk normalisasi data
+model Religion {
+  id            Int           @id @default(autoincrement())
+  name          String
+  demographics  Demographics[]
+}
+
+// Tabel Pendidikan untuk normalisasi data
+model Education {
+  id              Int      @id @default(autoincrement())
+  level           String
+  demographics    Demographics[]
+}
+
+// Tabel untuk menu Layanan dengan poin-poin
+model Service {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @default(uuid()) @unique
+  title           String
+  file_url        String?
+  pname           String
+  status          Status          @default(DRAFT)
+  content         String   @db.LongText
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  created_by      String?
+  updated_by      String?
+}
+
+//Tabel menu transparansi
+//tabel produk hukum
+model ProdukHukum {
+  id              Int             @id @default(autoincrement())
+  uuid            String          @default(uuid()) @unique
+  name           String
+  deskripsi           String
+  waktu           DateTime
+  file_url        String?         
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  createdbyId Int
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+//tabel menu sosial
+//agenda
+model Agenda {
+  id               Int      @id @default(autoincrement())
+  uuid            String          @default(uuid()) @unique
+  nama_agenda      String
+  deskripsi         String   @db.LongText
+  tempat_pelaksanaan String
+  tanggal_agenda   DateTime
+  tanggal_akhir_agenda   DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdbyId Int
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+model Pengumuman {
+  id              Int             @id @default(autoincrement())
+  uuid            String          @default(uuid()) @unique
+  title           String
+  content         String          @db.LongText
+  file_url        String?         // URL file yang di-upload
+  status          Status          @default(DRAFT)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  createdbyId String
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [uuid])
+}
+
+model Galeri {
+  id              Int             @id @default(autoincrement())
+  uuid            String          @default(uuid()) @unique
+  title           String
+  content         String          @db.LongText
+  file_url        String?         // URL file yang di-upload
+  status          Status          @default(DRAFT)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  createdbyId String
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [uuid])
+}
+
+model Berita {
+  id              Int             @id @default(autoincrement())
+  uuid            String          @default(uuid()) @unique
+  title           String
+  content         String          @db.LongText
+  file_url        String?         // URL file yang di-upload
+  status          Status          @default(DRAFT)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  createdbyId String
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [uuid])
+}
+
+model Keuangan {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  name         String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  kategori     Kategori[]
+}
+
+model Kategori {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  keuanganId   String
+  name         String
+  number       String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  subkategori  Subkategori[]
+  keuangan     Keuangan    @relation(fields: [keuanganId], references: [uuid], onDelete: Cascade)
+}
+
+model Subkategori {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  kategoriId   String
+  name         String
+  number       String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  budgetItems  BudgetItem[]
+  kategori     Kategori    @relation(fields: [kategoriId], references: [uuid], onDelete: Cascade)
+  totalBudget  Decimal     @default(0)
+  totalRealization Decimal @default(0)
+  remaining    Decimal     @default(0)
+}
+
+model BudgetItem {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  subkategoriId String
+  budget       Decimal
+  realization  Decimal
+  remaining    Decimal
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  subkategori  Subkategori @relation(fields: [subkategoriId], references: [uuid], onDelete: Cascade)
+  file_url     String?
+  year         Int
+}
+

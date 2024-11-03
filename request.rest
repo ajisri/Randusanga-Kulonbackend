@@ -1,0 +1,173 @@
+POST http://localhost:5000/register
+Content-Type: application/json
+
+{
+    "name": "admin",
+    "username": "administrator",
+    "email": "mail@gmail.com",
+    "password": "123",
+    "confpassword": "123",
+    "refresh_token": "",
+    "role": "administrator"
+}
+
+###
+POST http://localhost:5000/login
+Content-Type: application/json
+
+{
+    "username": "administrator",
+    "password": "123"
+}
+
+###
+GET http://localhost:5000/token
+
+###
+//get user
+get http://localhost:5000/users
+Authorization: Bearer 
+
+###
+//create admin
+POST http://localhost:5000/users
+Authorization: Bearer 
+Content-Type: application/json
+
+{
+    "role": "adminproduksi",
+    "nama": "donproduksi",
+    "username": "donproduksi",
+    "email": "donproduksi@gmail.com",
+    "password": "123",
+    "confpassword": "123"
+}
+
+###
+//get material
+get http://localhost:5000/Materials
+Authorization: Bearer 
+
+###
+//create material
+POST http://localhost:5000/Materials
+Authorization: Bearer 
+Content-Type: application/json
+
+{
+    "kodebahan": "G19"
+}
+
+###
+//create detail material
+POST http://localhost:5000/detailMaterials
+Authorization: Bearer 
+Content-Type: application/json
+
+{
+    "idbahan": "7a83ddf6-7572-41dd-9ff6-de8153289331",
+    "namabahan": "Galon",
+    "qtybahan": 1
+}
+
+
+###
+//create detail transaksi material
+POST http://localhost:5000/transaksiMaterials
+Authorization: Bearer 
+Content-Type: application/json
+
+{
+  "jenistransaksi": "masuk",
+  "keterangan": "",
+  "subjek": "toko1",
+  "createdBy":"",
+  "status":"",
+  "detailTransaksi": [
+    {
+        "idbahan": "8420cf67-493d-48aa-aa1f-f7f4ae85a448",
+      "qty": 4,
+      "harga": 100000
+    },
+    {
+        "idbahan": "d82227ac-3371-42cd-bdeb-1d5f4ebb2749",
+      "qty": 3,
+      "harga": 200000
+    },
+    {
+        "idbahan": "3bae6eff-ec7b-456b-9816-33db67ad3b93",
+      "qty": 2,
+      "harga": 400000
+    }
+  ]
+}
+
+###
+//create detail transaksi material
+POST http://localhost:5000/transaksiMaterials
+Authorization: Bearer 
+Content-Type: application/json
+
+{
+  "jenistransaksi": "keluar",
+  "keterangan": "",
+  "subjek": "",
+  "createdBy":"",
+  "status":"",
+  "detailTransaksi": [
+    {
+        "idbahan": "8420cf67-493d-48aa-aa1f-f7f4ae85a448",
+      "qty": 1,
+      "harga": 100000
+    },
+    {
+        "idbahan": "d82227ac-3371-42cd-bdeb-1d5f4ebb2749",
+      "qty": 1,
+      "harga": 100000
+    },
+    {
+        "idbahan": "3bae6eff-ec7b-456b-9816-33db67ad3b93",
+      "qty": 2,
+      "harga": 400000
+    }
+  ]
+}
+
+###
+//get material produksi
+get http://localhost:5000/materialProduksi
+Authorization: Bearer 
+
+###
+//create detail transaksi material
+POST http://localhost:5000/materialRequest
+Authorization: Bearer 
+Content-Type: application/json
+
+{
+  "jenistransaksi": "permintaan",
+  "keterangan": "",
+  "subjek": "",
+  "createdBy":"",
+  "status":"",
+  "detailTransaksi": [
+    {
+        "idbahan": "8420cf67-493d-48aa-aa1f-f7f4ae85a448",
+      "qty": 1,
+      "harga": 100000
+    },
+    {
+        "idbahan": "d82227ac-3371-42cd-bdeb-1d5f4ebb2749",
+      "qty": 1,
+      "harga": 100000
+    },
+    {
+        "idbahan": "3bae6eff-ec7b-456b-9816-33db67ad3b93",
+      "qty": 2,
+      "harga": 400000
+    }
+  ]
+}
+
+###
+DELETE http://localhost:5000/logout
