@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `service` ADD COLUMN `status` ENUM('DRAFT', 'PUBLISH') NOT NULL DEFAULT 'DRAFT';
