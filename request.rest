@@ -1,4 +1,4 @@
-POST http://localhost:5000/register
+POST https://randusanga-kulonbackend-production.up.railway.app/register
 Content-Type: application/json
 
 {

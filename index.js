@@ -22,9 +22,11 @@ const prisma = new PrismaClient();
 // Middleware setup
 app.use(cookieParser());
 app.use("/uploads", express.static(path.resolve("uploads")));
-app.use(cors({
-  origin: '*'
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 app.use(express.json());
 
 // Routes
@@ -50,7 +52,7 @@ app.get("/test-database-url", (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
