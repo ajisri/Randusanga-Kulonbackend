@@ -88,7 +88,8 @@ export const Login = async (req, res) => {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
-        //secure: true // Untuk HTTPS
+        secure: true, // Untuk HTTPS
+        sameSite: "None",
       });
 
       return res.json({ accessToken });
@@ -133,8 +134,9 @@ export const Login = async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      //secure: true // Untuk HTTPS
+  secure: true, // Hanya jika Anda menggunakan HTTPS
+  sameSite: "None", // Diperlukan untuk lintas domain dengan credential
+  maxAge: 24 * 60 * 60 * 1000,
     });
 
     return res.json({ accessToken });
