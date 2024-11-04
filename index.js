@@ -24,7 +24,8 @@ app.use(cookieParser());
 app.use("/uploads", express.static(path.resolve("uploads")));
 app.use(
   cors({
-    origin: "*",
+    origin: "https://randusanga-kulon.vercel.app",
+    credentials: true,
   })
 );
 app.use(express.json());
