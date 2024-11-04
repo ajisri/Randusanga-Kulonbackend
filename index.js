@@ -23,7 +23,7 @@ const prisma = new PrismaClient();
 app.use(cookieParser());
 app.use("/uploads", express.static(path.resolve("uploads")));
 app.use(
-  cors({ credentials: true, origin: "https://randusanga-kulon.vercel.app" })
+  cors({ credentials: true, methods: ['GET', 'POST'], origin: "https://randusanga-kulon.vercel.app" })
 );
 app.use(express.json());
 
