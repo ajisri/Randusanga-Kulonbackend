@@ -548,43 +548,36 @@ export const createSubkategori = [
 
     const createdById = req.administratorId;
     const subkategoriData = req.body.subkategoriData;
-
-    // Pastikan subkategoriData adalah array
-    if (!Array.isArray(subkategoriData)) {
-      return res
-        .status(400)
-        .json({ msg: "subkategoriData harus berupa array" });
-    }
+    const kategoriId = subkategoriData[0].kategoriId;
 
     try {
       const createdSubkategoris = [];
-      const uuidsToKeep = new Set(); // Set untuk menyimpan UUID yang harus disimpan
+      const uuidsToKeep = new Set();
 
-      // Mengambil semua subkategori yang ada untuk mengecek yang perlu diupdate
-      const existingSubkategoris = await prisma.subkategori.findMany();
-      const existingUuids = new Set(existingSubkategoris.map((s) => s.uuid)); // Mengambil UUID yang ada
+      // Hanya ambil subkategori yang sesuai dengan kategoriId
+      const existingSubkategoris = await prisma.subkategori.findMany({
+        where: { kategoriId },
+      });
+      const existingUuids = new Set(existingSubkategoris.map((s) => s.uuid));
 
       for (const subkategori of subkategoriData) {
-        const { uuid, kategoriId, name } = subkategori;
+        const { uuid, name } = subkategori;
 
-        // Jika UUID ada, lakukan update
         if (uuid) {
           const existingSubkategori = existingSubkategoris.find(
             (s) => s.uuid === uuid
           );
           if (existingSubkategori) {
-            // Update subkategori yang ada
             const updatedSubkategori = await prisma.subkategori.update({
               where: { uuid },
               data: { name, kategoriId },
             });
             createdSubkategoris.push(updatedSubkategori);
-            uuidsToKeep.add(uuid); // Simpan UUID yang telah diproses
+            uuidsToKeep.add(uuid);
           } else {
             console.error("Subkategori dengan UUID ini tidak ditemukan:", uuid);
           }
         } else {
-          // Jika tidak ada UUID, buat subkategori baru
           const count = await prisma.subkategori.count({
             where: { kategoriId },
           });
@@ -602,13 +595,14 @@ export const createSubkategori = [
         }
       }
 
-      // Hapus subkategori yang tidak ada di subkategoriData
+      // Hapus hanya subkategori pada kategoriId yang tidak ada di uuidsToKeep
       const uuidsToDelete = [...existingUuids].filter(
         (uuid) => !uuidsToKeep.has(uuid)
       );
       await prisma.subkategori.deleteMany({
         where: {
-          uuid: { in: uuidsToDelete }, // Hapus yang tidak ada di uuidsToKeep
+          uuid: { in: uuidsToDelete },
+          kategoriId,
         },
       });
 
