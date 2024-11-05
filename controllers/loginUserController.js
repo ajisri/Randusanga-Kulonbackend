@@ -89,6 +89,7 @@ export const Login = async (req, res) => {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         secure: true, // Untuk HTTPS
+        sameSite: "None",
       });
 
       return res.json({ accessToken });
@@ -135,6 +136,7 @@ export const Login = async (req, res) => {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
       secure: true, // Untuk HTTPS
+      sameSite: "None",
     });
 
     return res.json({ accessToken });
