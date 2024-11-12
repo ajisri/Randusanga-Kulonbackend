@@ -337,6 +337,15 @@ model Berita {
   createdBy     Administrator? @relation(fields: [createdbyId], references: [uuid])
 }
 
+model FilePendukung {
+  id         Int      @id @default(autoincrement())
+  year       Int      // Tahun file pendukung tersebut
+  file_url   String   // URL ke file pendukung
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  keuangan   Keuangan[] @relation("KeuanganFilePendukung")
+}
+
 model Keuangan {
   id           Int         @id @default(autoincrement())
   uuid         String      @default(uuid()) @unique
@@ -344,8 +353,13 @@ model Keuangan {
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
   createdById  String
+  filePendukung FilePendukung? @relation("KeuanganFilePendukung", fields: [filePendukungId], references: [id])
+  filePendukungId Int?
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
   kategori     Kategori[]
+
+  @@index([uuid])
+  
 }
 
 model Kategori {
