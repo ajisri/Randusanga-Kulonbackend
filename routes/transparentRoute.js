@@ -23,6 +23,7 @@ import {
   updateSubkategori,
   deleteSubkategori,
   createBudgetItem,
+  getBudgetBySubkategoriId,
   getAllBudgetItems,
   updateBudgetItem,
   deleteBudgetItem,
@@ -84,6 +85,13 @@ router.get(
   superOnly,
   uploadBudget.single("file"),
   getAllBudgetItems
+);
+router.get(
+  "/budgetbysubkategori/:subkategoriId",
+  verifyToken,
+  superOnly,
+  uploadBudget.single("file"),
+  getBudgetBySubkategoriId
 );
 router.post("/cbudget-item", createBudgetItem);
 router.patch("/budget-item/:uuid", updateBudgetItem);

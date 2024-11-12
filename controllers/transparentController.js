@@ -795,6 +795,23 @@ export const createBudgetItem = [
   },
 ];
 
+export const getBudgetBySubkategoriId = [
+  verifyAdmin,
+  async (req, res) => {
+    const { subkategoriId } = req.params; // Mengambil kategoriId dari parameter
+    try {
+      const budgetitems = await prisma.budgetItem.findMany({
+        where: { subkategoriId: subkategoriId }, // Mencari berdasarkan subkategoriId
+        include: { budgetItems: true },
+      });
+      res.status(200).json(budgetitems);
+    } catch (error) {
+      console.error("Error fetching Data:", error);
+      res.status(500).json({ msg: "Server error occurred" });
+    }
+  },
+];
+
 export const getAllBudgetItems = [
   verifyAdmin,
   async (req, res) => {
