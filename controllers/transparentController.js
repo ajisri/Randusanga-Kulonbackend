@@ -696,17 +696,17 @@ export const deleteSubkategori = [
 ];
 
 // BudgetItem CRUD
-export const createBudgetItem = [
+export const createBudgetItems = [
   verifyAdmin,
   check("budgetItemsData")
     .isArray()
-    .withMessage("Data budgeting harus berupa array"),
+    .withMessage("budgetItemsData harus berupa array"),
   check("budgetItemsData.*.budget")
-    .isNumeric()
-    .withMessage("Anggaran harus berupa angka"),
+    .isFloat({ min: 0 })
+    .withMessage("Budget harus berupa angka positif"),
   check("budgetItemsData.*.realization")
-    .isNumeric()
-    .withMessage("Realisasi harus berupa angka"),
+    .isFloat({ min: 0 })
+    .withMessage("Realisasi harus berupa angka positif"),
 
   async (req, res) => {
     const errors = validationResult(req);
@@ -715,70 +715,35 @@ export const createBudgetItem = [
     }
 
     const budgetItemsData = req.body.budgetItemsData;
-    const createdById = req.administratorId;
-    const kategoriId = req.body.kategoriId;
 
     try {
       const createdBudgetItems = [];
-      const uuidsToKeep = new Set();
 
-      // Ambil data existing budget items berdasarkan kategoriId
-      const existingBudgetItems = await prisma.budgetItem.findMany({
-        where: { kategoriId },
-      });
-      const existingUuids = new Set(existingBudgetItems.map((b) => b.uuid));
+      for (const item of budgetItemsData) {
+        const { budget, realization, remaining } = item;
 
-      for (const budgetItem of budgetItemsData) {
-        const { uuid, budget, realization } = budgetItem;
-        const remaining = parseFloat(budget) - parseFloat(realization);
+        // Pastikan konversi angka jika tipe di Prisma adalah Int atau Float
+        const parsedBudget = parseFloat(budget);
+        const parsedRealization = parseFloat(realization);
+        const parsedRemaining = parseFloat(remaining);
 
-        if (uuid) {
-          const existingBudgetItem = existingBudgetItems.find(
-            (b) => b.uuid === uuid
-          );
-          if (existingBudgetItem) {
-            const updatedBudgetItem = await prisma.budgetItem.update({
-              where: { uuid },
-              data: { budget, realization, remaining, kategoriId },
-            });
-            createdBudgetItems.push(updatedBudgetItem);
-            uuidsToKeep.add(uuid);
-          } else {
-            console.error("Budget item dengan UUID ini tidak ditemukan:", uuid);
-          }
-        } else {
-          const createdBudgetItem = await prisma.budgetItem.create({
-            data: {
-              budget,
-              realization,
-              remaining,
-              kategoriId,
-              createdById,
-            },
-          });
-          createdBudgetItems.push(createdBudgetItem);
-        }
+        const createdBudgetItem = await prisma.budgetItem.create({
+          data: {
+            budget: parsedBudget,
+            realization: parsedRealization,
+            remaining: parsedRemaining,
+          },
+        });
+        createdBudgetItems.push(createdBudgetItem);
       }
 
-      // Hapus data budget item yang tidak ada di uuidsToKeep
-      const uuidsToDelete = [...existingUuids].filter(
-        (uuid) => !uuidsToKeep.has(uuid)
-      );
-      await prisma.budgetItem.deleteMany({
-        where: {
-          uuid: { in: uuidsToDelete },
-          kategoriId,
-        },
-      });
-
       return res.status(200).json({
-        message: "Data budgeting berhasil dikelola",
-        count: createdBudgetItems.length,
+        message: "Budget items created successfully",
         createdBudgetItems,
       });
     } catch (error) {
-      console.error("Error managing budgeting:", error);
-      return res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+      console.error("Error creating budget items:", error);
+      return res.status(500).json({ msg: "Server error occurred" });
     }
   },
 ];
