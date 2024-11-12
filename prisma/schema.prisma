@@ -59,7 +59,6 @@ model Administrator {
   Kategori Kategori[]
   Subkategori Subkategori[]
   BudgetItem BudgetItem[]
-  FilePendukung FilePendukung[]
 }
 
 model User{
@@ -338,22 +337,10 @@ model Berita {
   createdBy     Administrator? @relation(fields: [createdbyId], references: [uuid])
 }
 
-model FilePendukung {
-  id         Int      @id @default(autoincrement())
-  year       Int      // Tahun file pendukung tersebut
-  file_url   String   // URL ke file pendukung
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  createdById  String
-  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
-  keuangan   Keuangan[] @relation("KeuanganFilePendukung")
-}
 model Keuangan {
   id           Int         @id @default(autoincrement())
   uuid         String      @default(uuid()) @unique
   name         String
-  filePendukung FilePendukung? @relation("KeuanganFilePendukung", fields: [filePendukungId], references: [id])
-  filePendukungId Int?
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
   createdById  String
@@ -404,5 +391,7 @@ model BudgetItem {
   createdById  String
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
   subkategori  Subkategori @relation(fields: [subkategoriId], references: [uuid], onDelete: Cascade)
+  file_url     String?
+  year         Int
 }
 
