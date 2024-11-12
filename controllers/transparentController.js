@@ -718,7 +718,7 @@ export const createBudgetItem = [
     }
 
     const { budgetItemsData } = req.body;
-    const createdById = req.administratorId; // ID dari pengguna/admin yang melakukan operasi
+    const createdById = req.administratorId;
     const subkategoriId = budgetItemsData[0].subkategoriId;
 
     try {
@@ -776,12 +776,14 @@ export const createBudgetItem = [
       const uuidsToDelete = [...existingUuids].filter(
         (uuid) => !uuidsToKeep.has(uuid)
       );
-      await prisma.budgetItem.deleteMany({
-        where: {
-          uuid: { in: uuidsToDelete },
-          subkategoriId,
-        },
-      });
+      if (uuidsToDelete.length > 0) {
+        await prisma.budgetItem.deleteMany({
+          where: {
+            uuid: { in: uuidsToDelete },
+            subkategoriId,
+          },
+        });
+      }
 
       return res.status(200).json({
         message: "Budget items managed successfully",
@@ -789,8 +791,10 @@ export const createBudgetItem = [
         createdOrUpdatedItems,
       });
     } catch (error) {
-      console.error("Error managing BudgetItems:", error);
-      return res.status(500).json({ msg: "Server error occurred" });
+      console.error("Error managing BudgetItems:", error.message || error);
+      return res
+        .status(500)
+        .json({ msg: "Server error occurred", error: error.message || error });
     }
   },
 ];

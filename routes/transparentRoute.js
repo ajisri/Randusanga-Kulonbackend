@@ -93,8 +93,8 @@ router.get(
   uploadBudget.single("file"),
   getBudgetBySubkategoriId
 );
-router.post("/cbudget-item", createBudgetItem);
-router.patch("/budget-item/:uuid", updateBudgetItem);
-router.delete("/budget-item/:uuid", deleteBudgetItem);
+router.post("/cbudget-item", verifyToken, superOnly, createBudgetItem);
+router.patch("/budget-item/:uuid", verifyToken, superOnly, updateBudgetItem);
+router.delete("/budget-item/:uuid", verifyToken, superOnly, deleteBudgetItem);
 
 export default router;
