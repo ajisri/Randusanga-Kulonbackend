@@ -719,33 +719,29 @@ export const createBudgetItem = [
 
     const { budgetItemsData } = req.body;
     const createdById = req.administratorId; // ID dari pengguna/admin yang melakukan operasi
+    const subkategoriId = budgetItemsData[0].subkategoriId;
 
     try {
-      const createdBudgetItems = [];
+      const createdOrUpdatedItems = [];
       const uuidsToKeep = new Set();
 
-      // Ambil semua budget items yang ada pada subkategoriId tertentu
-      const subkategoriId = budgetItemsData[0].subkategoriId;
-      const existingBudgetItems = await prisma.budgetItem.findMany({
+      // Ambil semua budget item pada subkategoriId yang bersangkutan
+      const existingItems = await prisma.budgetItem.findMany({
         where: { subkategoriId },
       });
-      const existingUuids = new Set(existingBudgetItems.map((b) => b.uuid));
+      const existingUuids = new Set(existingItems.map((item) => item.uuid));
 
       for (const item of budgetItemsData) {
         const { uuid, budget, realization, year } = item;
-
-        // Konversi budget dan realization ke angka untuk memastikan operasi aritmatika
         const budgetValue = parseFloat(budget);
         const realizationValue = parseFloat(realization);
         const remaining = budgetValue - realizationValue;
 
         if (uuid) {
-          const existingBudgetItem = existingBudgetItems.find(
-            (b) => b.uuid === uuid
-          );
-          if (existingBudgetItem) {
-            // Update item jika uuid ditemukan
-            const updatedBudgetItem = await prisma.budgetItem.update({
+          const existingItem = existingItems.find((b) => b.uuid === uuid);
+          if (existingItem) {
+            // Update jika UUID ditemukan
+            const updatedItem = await prisma.budgetItem.update({
               where: { uuid },
               data: {
                 budget: budgetValue,
@@ -755,14 +751,14 @@ export const createBudgetItem = [
                 createdById,
               },
             });
-            createdBudgetItems.push(updatedBudgetItem);
+            createdOrUpdatedItems.push(updatedItem);
             uuidsToKeep.add(uuid);
           } else {
             console.error("BudgetItem dengan UUID ini tidak ditemukan:", uuid);
           }
         } else {
-          // Buat item baru jika tidak ada UUID
-          const createdBudgetItem = await prisma.budgetItem.create({
+          // Buat baru jika tidak ada UUID
+          const newItem = await prisma.budgetItem.create({
             data: {
               budget: budgetValue,
               realization: realizationValue,
@@ -772,11 +768,11 @@ export const createBudgetItem = [
               createdById,
             },
           });
-          createdBudgetItems.push(createdBudgetItem);
+          createdOrUpdatedItems.push(newItem);
         }
       }
 
-      // Hapus budget item yang tidak ada di uuidsToKeep
+      // Hapus budget item yang tidak ada di uuidsToKeep untuk subkategoriId ini
       const uuidsToDelete = [...existingUuids].filter(
         (uuid) => !uuidsToKeep.has(uuid)
       );
@@ -789,8 +785,8 @@ export const createBudgetItem = [
 
       return res.status(200).json({
         message: "Budget items managed successfully",
-        count: createdBudgetItems.length,
-        createdBudgetItems,
+        count: createdOrUpdatedItems.length,
+        createdOrUpdatedItems,
       });
     } catch (error) {
       console.error("Error managing BudgetItems:", error);
