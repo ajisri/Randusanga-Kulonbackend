@@ -698,33 +698,87 @@ export const deleteSubkategori = [
 // BudgetItem CRUD
 export const createBudgetItem = [
   verifyAdmin,
-  body("budget").isNumeric().withMessage("Budget must be a numeric value"),
-  body("realization")
+  check("budgetItemsData")
+    .isArray()
+    .withMessage("Data budgeting harus berupa array"),
+  check("budgetItemsData.*.budget")
     .isNumeric()
-    .withMessage("Realization must be a numeric value"),
-  body("subkategoriId")
-    .isUUID()
-    .withMessage("SubkategoriId must be a valid UUID"),
-  body("createdById").isUUID().withMessage("CreatedById must be a valid UUID"),
-  body("year").isNumeric().withMessage("Year must be a numeric value"),
+    .withMessage("Anggaran harus berupa angka"),
+  check("budgetItemsData.*.realization")
+    .isNumeric()
+    .withMessage("Realisasi harus berupa angka"),
+
   async (req, res) => {
-    handleValidationErrors(req, res);
-    const { budget, realization, subkategoriId, createdById, year } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const budgetItemsData = req.body.budgetItemsData;
+    const createdById = req.administratorId;
+    const kategoriId = req.body.kategoriId;
+
     try {
-      const budgetItem = await prisma.budgetItem.create({
-        data: {
-          budget,
-          realization,
-          remaining: budget - realization,
-          subkategoriId,
-          createdById,
-          year,
+      const createdBudgetItems = [];
+      const uuidsToKeep = new Set();
+
+      // Ambil data existing budget items berdasarkan kategoriId
+      const existingBudgetItems = await prisma.budgetItem.findMany({
+        where: { kategoriId },
+      });
+      const existingUuids = new Set(existingBudgetItems.map((b) => b.uuid));
+
+      for (const budgetItem of budgetItemsData) {
+        const { uuid, budget, realization } = budgetItem;
+        const remaining = parseFloat(budget) - parseFloat(realization);
+
+        if (uuid) {
+          const existingBudgetItem = existingBudgetItems.find(
+            (b) => b.uuid === uuid
+          );
+          if (existingBudgetItem) {
+            const updatedBudgetItem = await prisma.budgetItem.update({
+              where: { uuid },
+              data: { budget, realization, remaining, kategoriId },
+            });
+            createdBudgetItems.push(updatedBudgetItem);
+            uuidsToKeep.add(uuid);
+          } else {
+            console.error("Budget item dengan UUID ini tidak ditemukan:", uuid);
+          }
+        } else {
+          const createdBudgetItem = await prisma.budgetItem.create({
+            data: {
+              budget,
+              realization,
+              remaining,
+              kategoriId,
+              createdById,
+            },
+          });
+          createdBudgetItems.push(createdBudgetItem);
+        }
+      }
+
+      // Hapus data budget item yang tidak ada di uuidsToKeep
+      const uuidsToDelete = [...existingUuids].filter(
+        (uuid) => !uuidsToKeep.has(uuid)
+      );
+      await prisma.budgetItem.deleteMany({
+        where: {
+          uuid: { in: uuidsToDelete },
+          kategoriId,
         },
       });
-      res.status(201).json(budgetItem);
+
+      return res.status(200).json({
+        message: "Data budgeting berhasil dikelola",
+        count: createdBudgetItems.length,
+        createdBudgetItems,
+      });
     } catch (error) {
-      console.error("Error creating BudgetItem:", error);
-      res.status(500).json({ msg: "Server error occurred" });
+      console.error("Error managing budgeting:", error);
+      return res.status(500).json({ msg: "Terjadi kesalahan pada server" });
     }
   },
 ];
