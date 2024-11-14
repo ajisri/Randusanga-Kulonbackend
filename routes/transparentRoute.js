@@ -1,5 +1,6 @@
 import express from "express";
 import uploadProdukHukum from "../middleware/fileUploadProdukHukum.js";
+import uploadApbd from "../middleware/fileUploadApbd.js";
 import uploadBudget from "../middleware/fileUploadBudget.js";
 
 import {
@@ -9,6 +10,12 @@ import {
   createProdukHukum,
   updateProdukHukum,
   deleteProdukHukum,
+  getApbdPengunjung,
+  downloadFileApbd,
+  getApbdAdmin,
+  createApbd,
+  updateApbd,
+  deleteApbd,
   createKeuangan,
   getAllKeuangan,
   updateKeuangan,
@@ -53,6 +60,29 @@ router.patch(
   updateProdukHukum
 );
 router.delete("/produk_hukum/:uuid", verifyToken, superOnly, deleteProdukHukum);
+
+//apbd
+//pengunjung
+router.get("/apbdp", getApbdPengunjung);
+router.get("/download/:filename", downloadFile);
+
+//admin
+router.get("/apbd", verifyToken, superOnly, getApbdAdmin);
+router.post(
+  "/capbd",
+  verifyToken,
+  superOnly,
+  uploadApbd.single("file"),
+  createApbd
+);
+router.patch(
+  "/apbd/:id",
+  verifyToken,
+  superOnly,
+  uploadApbd.single("file"),
+  updateApbd
+);
+router.delete("/apbd/:id", verifyToken, superOnly, deleteApbd);
 
 //keuangan
 router.get("/keuangan", verifyToken, superOnly, getAllKeuangan);
