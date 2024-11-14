@@ -64,7 +64,7 @@ router.delete("/produk_hukum/:uuid", verifyToken, superOnly, deleteProdukHukum);
 //apbd
 //pengunjung
 router.get("/apbdp", getApbdPengunjung);
-router.get("/download/:filename", downloadFile);
+router.get("/downloadapbd/:filename", downloadFileApbd);
 
 //admin
 router.get("/apbd", verifyToken, superOnly, getApbdAdmin);

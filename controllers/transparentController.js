@@ -397,23 +397,19 @@ export const downloadFileApbd = (req, res) => {
 };
 
 export const getApbdAdmin = [
-  verifyAdmin, // Middleware untuk verifikasi admin
+  verifyAdmin,
   async (req, res) => {
     try {
       // Ambil refresh token dari cookies
-      const refreshToken = req.cookies.refreshToken;
-
-      // Cek keberadaan refresh token
-      if (!refreshToken) {
-        return res.status(401).json({ msg: "Token tidak ditemukan" });
-      }
-
-      // Temukan administrator berdasarkan refresh token
+      const administratorId = req.administratorId;
       const administrator = await prisma.administrator.findUnique({
-        where: {
-          refresh_token: refreshToken,
-        },
+        where: { uuid: administratorId },
       });
+
+      // Cek apakah administrator ditemukan
+      if (!administrator) {
+        return res.status(401).json({ msg: "Pengguna tidak ditemukan" });
+      }
 
       // Cek apakah administrator ditemukan
       if (!administrator) {
