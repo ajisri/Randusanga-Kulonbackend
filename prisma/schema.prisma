@@ -339,6 +339,7 @@ model Berita {
 
 model FilePendukung {
   id         Int      @id @default(autoincrement())
+  name       String
   year       Int      // Tahun file pendukung tersebut
   file_url   String   // URL ke file pendukung
   created_at DateTime @default(now())

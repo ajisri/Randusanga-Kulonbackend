@@ -357,19 +357,31 @@ const verifyAdmin = async (req, res, next) => {
 
 // Keuangan CRUD
 export const createKeuangan = [
-  verifyAdmin, // Menambahkan middleware
+  verifyAdmin, // Middleware untuk verifikasi admin
   body("name").notEmpty().withMessage("Name is required"),
+  body("year").isInt().withMessage("Year is required and must be a number"),
+  body("file_url").notEmpty().withMessage("File URL is required"),
   async (req, res) => {
     handleValidationErrors(req, res);
 
-    const { name } = req.body;
-    const createdById = req.administratorId; // Mengambil UUID dari administrator yang terverifikasi
+    const { name, year, file_url } = req.body;
+    const createdById = req.administratorId;
 
     try {
+      // Membuat entri Keuangan
       const keuangan = await prisma.keuangan.create({
         data: {
           name,
-          createdById, // Gunakan UUID yang didapat dari req.administratorId
+          createdById,
+          filePendukung: {
+            create: {
+              year,
+              file_url,
+            },
+          },
+        },
+        include: {
+          filePendukung: true, // Menyertakan file pendukung dalam respons
         },
       });
       res.status(201).json(keuangan);
