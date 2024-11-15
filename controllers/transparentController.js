@@ -484,6 +484,7 @@ export const createApbd = [
         console.log("No file uploaded");
       }
       const createdById = req.administratorId;
+      console.log("Administrator UUID:", createdById);
       // Membuat entri baru untuk APBD
       const newApbd = await prisma.apbd.create({
         data: {
