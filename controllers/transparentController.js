@@ -442,6 +442,12 @@ export const createApbd = [
     const createdById = req.administratorId; // Mengambil UUID dari admin yang terverifikasi
 
     try {
+      console.log("Creating APBD with data:", {
+        name,
+        year,
+        file,
+        createdById,
+      });
       // Cek apakah kombinasi nama dan tahun sudah ada
       const existingApbd = await prisma.apbd.findFirst({
         where: {
@@ -471,7 +477,7 @@ export const createApbd = [
         apbd: newApbd,
       });
     } catch (error) {
-      console.error("Error creating APBD:", error);
+      console.error("Error creating APBD:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
