@@ -483,7 +483,7 @@ export const createApbd = [
       } else {
         console.log("No file uploaded");
       }
-
+      const createdById = req.administratorId;
       // Membuat entri baru untuk APBD
       const newApbd = await prisma.apbd.create({
         data: {
