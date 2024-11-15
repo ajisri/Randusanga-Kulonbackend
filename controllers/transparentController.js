@@ -474,6 +474,7 @@ export const createApbd = [
       console.error("Error creating APBD:", error);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
+        error: error.message,
       });
     }
   },
