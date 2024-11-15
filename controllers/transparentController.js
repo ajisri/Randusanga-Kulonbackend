@@ -426,11 +426,6 @@ export const getApbdAdmin = [
 
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
-  body("name").notEmpty().withMessage("Name is required"),
-  body("year")
-    .isInt({ min: 1900, max: new Date().getFullYear() })
-    .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
-
   async (req, res) => {
     // Menangani validasi
     const errors = validationResult(req);
