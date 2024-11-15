@@ -426,7 +426,6 @@ export const getApbdAdmin = [
 
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
-  verifyAdmin, // Middleware untuk verifikasi admin
   body("name").notEmpty().withMessage("Name is required"),
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
