@@ -59,6 +59,7 @@ model Administrator {
   Kategori Kategori[]
   Subkategori Subkategori[]
   BudgetItem BudgetItem[]
+  Apbd Apbd[]
 }
 
 model User{
@@ -344,6 +345,8 @@ model Apbd {
   file_url   String   // URL ke file pendukung
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
   Keuangan Keuangan[] @relation("KeuanganApbd")
 }
 
