@@ -426,6 +426,11 @@ export const getApbdAdmin = [
 
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
+  body("name").notEmpty().withMessage("Name is required"),
+  body("year")
+    .isInt({ min: 1900, max: new Date().getFullYear() })
+    .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
+
   async (req, res) => {
     // Menangani validasi
     const errors = validationResult(req);
@@ -433,6 +438,9 @@ export const createApbd = [
       console.error("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
+
+    console.log("Data yang diterima dari frontend (req.body):", req.body);
+    console.log("File yang diunggah (req.file):", req.file);
 
     const { name, year } = req.body;
     const file = req.file;
