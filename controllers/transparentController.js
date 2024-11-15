@@ -400,27 +400,6 @@ export const getApbdAdmin = [
   verifyAdmin,
   async (req, res) => {
     try {
-      // Ambil refresh token dari cookies
-      const administratorId = req.administratorId;
-      const administrator = await prisma.administrator.findUnique({
-        where: { uuid: administratorId },
-      });
-
-      // Cek apakah administrator ditemukan
-      if (!administrator) {
-        return res.status(401).json({ msg: "Pengguna tidak ditemukan" });
-      }
-
-      // Cek apakah administrator ditemukan
-      if (!administrator) {
-        return res.status(401).json({ msg: "Pengguna tidak ditemukan" });
-      }
-
-      // Cek peran administrator
-      if (administrator.role !== "administrator") {
-        return res.status(403).json({ msg: "Akses ditolak" });
-      }
-
       // Ambil data dari tabel
       const apbd = await prisma.apbd.findMany({
         include: {
@@ -437,13 +416,9 @@ export const getApbdAdmin = [
         return res.status(200).json({ apbd: [] });
       }
 
-      // Kirimkan data produk hukum
       res.status(200).json({ apbd });
     } catch (error) {
-      console.error(
-        "Error saat mengambil data produk hukum untuk admin:",
-        error
-      );
+      console.error("Error saat mengambil data apbd untuk admin:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
     }
   },
