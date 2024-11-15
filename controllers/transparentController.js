@@ -426,14 +426,17 @@ export const getApbdAdmin = [
 
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
+  verifyAdmin, // Middleware untuk verifikasi admin
   body("name").notEmpty().withMessage("Name is required"),
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
+
   async (req, res) => {
     // Menangani validasi
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -441,14 +444,11 @@ export const createApbd = [
     const file = req.file;
     const createdById = req.administratorId; // Mengambil UUID dari admin yang terverifikasi
 
+    // Debugging: Log data yang diterima
+    console.log("Creating APBD with data:", { name, year, file, createdById });
+
+    // Cek apakah kombinasi nama dan tahun sudah ada
     try {
-      console.log("Creating APBD with data:", {
-        name,
-        year,
-        file,
-        createdById,
-      });
-      // Cek apakah kombinasi nama dan tahun sudah ada
       const existingApbd = await prisma.apbd.findFirst({
         where: {
           name,
@@ -457,27 +457,51 @@ export const createApbd = [
       });
 
       if (existingApbd) {
+        console.error("APBD already exists with this name and year:", {
+          name,
+          year,
+        });
         return res.status(400).json({
           msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
         });
+      }
+
+      // Cek apakah createdById ada
+      if (!createdById) {
+        console.error("Administrator ID is missing");
+        return res.status(400).json({ msg: "Administrator ID is missing" });
+      }
+
+      // Periksa apakah file diunggah dan valid
+      if (file) {
+        const allowedTypes = ["application/pdf"];
+        if (!allowedTypes.includes(file.mimetype)) {
+          console.error("Invalid file type:", file.mimetype);
+          return res.status(400).json({
+            msg: "Invalid file type. Only PDF files are allowed.",
+          });
+        }
+      } else {
+        console.log("No file uploaded");
       }
 
       // Membuat entri baru untuk APBD
       const newApbd = await prisma.apbd.create({
         data: {
           name,
-          year, // Menyimpan sebagai integer
-          file_url: file ? `/uploads/apbd/${file.filename}` : null,
+          year,
+          file_url: file ? `/uploads/apbd/${file.filename}` : null, // Menyimpan file URL jika ada file
           createdById,
         },
       });
 
+      console.log("APBD created successfully:", newApbd);
       return res.status(201).json({
         msg: "APBD dibuat dengan sukses",
         apbd: newApbd,
       });
     } catch (error) {
-      console.error("Error creating APBD:", error.message);
+      console.error("Error creating APBD:", error); // Log full error
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
