@@ -347,7 +347,7 @@ model Apbd {
   updated_at DateTime @updatedAt
   createdById  String
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
-  Keuangan Keuangan[] @relation("KeuanganApbd")
+  keuangan Keuangan[]
 }
 
 model Keuangan {
@@ -357,13 +357,12 @@ model Keuangan {
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
   createdById  String
-  apbd Apbd? @relation("KeuanganApbd", fields: [apbdId], references: [id])
-  apbdId Int?
+  apbd         Apbd        @relation(fields: [apbdId], references: [id], onDelete: Cascade)
+  apbdId       Int
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
   kategori     Kategori[]
 
   @@index([uuid])
-  
 }
 
 model Kategori {
