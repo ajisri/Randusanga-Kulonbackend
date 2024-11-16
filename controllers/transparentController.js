@@ -434,97 +434,77 @@ export const getApbdAdmin = [
   },
 ];
 
-export const createApbd = [
-  verifyAdmin, // Middleware untuk verifikasi admin
+export const createApbd = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-  // Validasi input
-  body("name").notEmpty().withMessage("Name is required"),
-  body("year")
-    .isInt({ min: 1900, max: new Date().getFullYear() })
-    .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
+  const { name, year } = req.body;
+  const file = req.file;
 
-  async (req, res) => {
-    console.log("Handler createApbd dipanggil.");
-    console.log("Body yang diterima:", req.body);
-
-    // Menangani validasi input
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      console.warn("Validation errors:", errors.array());
-      return res.status(400).json({ errors: errors.array() });
+  try {
+    // Validasi tahun sebagai angka
+    if (
+      !Number.isInteger(Number(year)) ||
+      Number(year) < 1900 ||
+      Number(year) > 2100
+    ) {
+      return res.status(400).json({
+        msg: "Tahun harus berupa angka valid (1900-2100)",
+      });
     }
 
-    const { name, year } = req.body;
-    const file = req.file; // File akan ada di sini jika middleware multer berhasil
-    const createdById = req.administratorId; // UUID dari admin yang terverifikasi
+    // Verifikasi token
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
 
-    // Debugging: Log data yang diterima
-    console.log("Data yang diterima untuk membuat APBD:", {
-      name,
-      year,
-      file,
-      createdById,
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const administrator = await prisma.administrator.findUnique({
+      where: { id: decoded.administratorId },
     });
 
-    try {
-      // Cek apakah kombinasi nama dan tahun sudah ada
-      console.log("Memeriksa apakah APBD dengan nama dan tahun sudah ada...");
-      const existingApbd = await prisma.apbd.findFirst({
-        where: {
-          name,
-          year,
-        },
-      });
+    if (!administrator || administrator.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
 
-      if (existingApbd) {
-        console.warn("APBD sudah ada untuk kombinasi nama dan tahun:", {
-          name,
-          year,
-        });
-        return res.status(400).json({
-          msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
-        });
-      }
+    // Cek apakah kombinasi nama dan tahun sudah ada
+    const existingApbd = await prisma.apbd.findFirst({
+      where: {
+        name,
+        year: Number(year),
+      },
+    });
 
-      // Validasi file jika diunggah
-      if (file) {
-        console.log("File ditemukan. Memvalidasi file...");
-        const allowedTypes = ["application/pdf"];
-        if (!allowedTypes.includes(file.mimetype)) {
-          console.warn("File type tidak valid:", file.mimetype);
-          return res.status(400).json({
-            msg: "File type tidak valid. Hanya file PDF yang diperbolehkan.",
-          });
-        }
-      } else {
-        console.info("Tidak ada file yang diunggah.");
-      }
-
-      // Membuat entri baru untuk APBD
-      console.log("Membuat APBD baru...");
-      const newApbd = await prisma.apbd.create({
-        data: {
-          name,
-          year,
-          file_url: file ? `/uploads/apbd/${file.filename}` : null, // URL file jika ada file
-          createdById,
-        },
-      });
-
-      console.log("APBD berhasil dibuat:", newApbd);
-      return res.status(201).json({
-        msg: "APBD dibuat dengan sukses",
-        apbd: newApbd,
-      });
-    } catch (error) {
-      console.error("Terjadi kesalahan saat membuat APBD:", error.message);
-      return res.status(500).json({
-        msg: "Terjadi kesalahan pada server",
-        error: error.message,
+    if (existingApbd) {
+      return res.status(400).json({
+        msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
       });
     }
-  },
-];
+
+    // Buat data APBD baru
+    const newApbd = await prisma.apbd.create({
+      data: {
+        name,
+        year: Number(year),
+        file_url: file ? `/uploads/apbd/${file.filename}` : null,
+        createdbyId: administrator.id,
+      },
+    });
+
+    return res.status(201).json({
+      msg: "APBD berhasil dibuat",
+      apbd: newApbd,
+    });
+  } catch (error) {
+    console.error("Error saat membuat APBD:", error);
+    return res.status(500).json({
+      msg: "Terjadi kesalahan pada server",
+    });
+  }
+};
 
 export const updateApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
