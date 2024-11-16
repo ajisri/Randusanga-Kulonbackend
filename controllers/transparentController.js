@@ -331,26 +331,36 @@ const handleValidationErrors = (req, res) => {
 
 // Middleware to check refresh token and administrator role
 const verifyAdmin = async (req, res, next) => {
+  console.log("Memulai verifikasi admin...");
   const refreshToken = req.cookies.refreshToken;
+
   if (!refreshToken) {
+    console.warn("Token tidak ditemukan di cookies.");
     return res.status(401).json({ msg: "Token tidak ditemukan" });
   }
 
   try {
+    console.log("Token ditemukan. Memverifikasi token...");
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    console.log("Token berhasil diverifikasi:", decoded);
+
     const administrator = await prisma.administrator.findUnique({
       where: { id: decoded.administratorId },
     });
 
     if (!administrator || administrator.role !== "administrator") {
+      console.warn(
+        "Administrator tidak valid atau tidak memiliki akses:",
+        administrator
+      );
       return res.status(403).json({ msg: "Akses ditolak" });
     }
 
-    // Menyimpan UUID administrator ke dalam req untuk digunakan di controller
+    console.log("Administrator terverifikasi:", administrator);
     req.administratorId = administrator.uuid;
-    next(); // Jika semua validasi berhasil, lanjutkan ke handler berikutnya
+    next();
   } catch (error) {
-    console.error("Error verifying token:", error);
+    console.error("Error verifying token:", error.message);
     return res.status(403).json({ msg: "Token tidak valid" });
   }
 };
@@ -434,6 +444,9 @@ export const createApbd = [
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
 
   async (req, res) => {
+    console.log("Handler createApbd dipanggil.");
+    console.log("Body yang diterima:", req.body);
+
     // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -455,6 +468,7 @@ export const createApbd = [
 
     try {
       // Cek apakah kombinasi nama dan tahun sudah ada
+      console.log("Memeriksa apakah APBD dengan nama dan tahun sudah ada...");
       const existingApbd = await prisma.apbd.findFirst({
         where: {
           name,
@@ -474,6 +488,7 @@ export const createApbd = [
 
       // Validasi file jika diunggah
       if (file) {
+        console.log("File ditemukan. Memvalidasi file...");
         const allowedTypes = ["application/pdf"];
         if (!allowedTypes.includes(file.mimetype)) {
           console.warn("File type tidak valid:", file.mimetype);
@@ -486,6 +501,7 @@ export const createApbd = [
       }
 
       // Membuat entri baru untuk APBD
+      console.log("Membuat APBD baru...");
       const newApbd = await prisma.apbd.create({
         data: {
           name,
