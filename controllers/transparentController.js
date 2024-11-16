@@ -449,19 +449,25 @@ export const createApbd = [
     // Debugging: Log data yang diterima
     console.log("Creating APBD with data:", { name, year, file, createdById });
 
+    const parsedYear = parseInt(year, 10);
+    if (isNaN(parsedYear)) {
+      console.error("Year tidak valid:", year);
+      return res.status(400).json({ msg: "Tahun tidak valid" });
+    }
+
     // Cek apakah kombinasi nama dan tahun sudah ada
     try {
       const existingApbd = await prisma.apbd.findFirst({
         where: {
           name,
-          year,
+          year: parsedYear,
         },
       });
 
       if (existingApbd) {
         console.error("APBD already exists with this name and year:", {
           name,
-          year,
+          parsedYear,
         });
         return res.status(400).json({
           msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
@@ -492,7 +498,7 @@ export const createApbd = [
       const newApbd = await prisma.apbd.create({
         data: {
           name,
-          year,
+          parsedYear,
           file_url: file ? `/uploads/apbd/${file.filename}` : null, // Menyimpan file URL jika ada file
           createdById,
         },
