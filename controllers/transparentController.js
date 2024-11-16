@@ -450,29 +450,25 @@ export const getApbdAdmin = [
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
 
-  // Validasi input menggunakan express-validator
+  // Validasi input
   body("name").notEmpty().withMessage("Name is required"),
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
 
   async (req, res) => {
-    // Log awal ketika handler dipanggil
     console.log("Handler createApbd dipanggil.");
-
-    // Log body yang diterima dari request
     console.log("Body yang diterima:", req.body);
 
     // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Log kesalahan validasi jika ada
       console.warn("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { name, year } = req.body;
-    const file = req.file; // Mengambil file jika ada
+    const file = req.file; // File akan ada di sini jika middleware multer berhasil
     const createdById = req.administratorId; // UUID dari admin yang terverifikasi
 
     // Debugging: Log data yang diterima
@@ -484,7 +480,7 @@ export const createApbd = [
     });
 
     try {
-      // Memeriksa apakah APBD dengan nama dan tahun yang sama sudah ada
+      // Cek apakah kombinasi nama dan tahun sudah ada
       console.log("Memeriksa apakah APBD dengan nama dan tahun sudah ada...");
       const existingApbd = await prisma.apbd.findFirst({
         where: {
@@ -494,7 +490,6 @@ export const createApbd = [
       });
 
       if (existingApbd) {
-        // Jika APBD sudah ada, log peringatan dan kembalikan respons 400
         console.warn("APBD sudah ada untuk kombinasi nama dan tahun:", {
           name,
           year,
@@ -502,22 +497,6 @@ export const createApbd = [
         return res.status(400).json({
           msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
         });
-      }
-
-      // Validasi file jika diunggah
-      if (file) {
-        console.log("File ditemukan. Memvalidasi file...");
-        const allowedTypes = ["application/pdf"];
-        if (!allowedTypes.includes(file.mimetype)) {
-          // Jika tipe file tidak valid, log peringatan dan kembalikan respons 400
-          console.warn("File type tidak valid:", file.mimetype);
-          return res.status(400).json({
-            msg: "File type tidak valid. Hanya file PDF yang diperbolehkan.",
-          });
-        }
-      } else {
-        // Log informasi jika tidak ada file yang diunggah
-        console.info("Tidak ada file yang diunggah.");
       }
 
       // Membuat entri baru untuk APBD
@@ -531,14 +510,12 @@ export const createApbd = [
         },
       });
 
-      // Log sukses jika APBD berhasil dibuat
       console.log("APBD berhasil dibuat:", newApbd);
       return res.status(201).json({
         msg: "APBD dibuat dengan sukses",
         apbd: newApbd,
       });
     } catch (error) {
-      // Log kesalahan jika terjadi error saat pembuatan APBD
       console.error("Terjadi kesalahan saat membuat APBD:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
