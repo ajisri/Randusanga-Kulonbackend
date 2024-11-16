@@ -516,7 +516,7 @@ export const createApbd = [
           name,
           year: parsedYear,
           file_url: req.file ? `/uploads/apbd/${req.file.filename}` : null,
-          createdById: administrator.id,
+          createdById,
         },
       });
 
