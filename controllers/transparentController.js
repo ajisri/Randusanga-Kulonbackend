@@ -331,23 +331,32 @@ const handleValidationErrors = (req, res) => {
 
 // Middleware to check refresh token and administrator role
 const verifyAdmin = async (req, res, next) => {
+  // Log awal untuk memulai proses verifikasi admin
   console.log("Memulai verifikasi admin...");
+
+  // Mendapatkan refresh token dari cookies
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
+    // Jika token tidak ditemukan, log peringatan dan kembalikan respons 401
     console.warn("Token tidak ditemukan di cookies.");
     return res.status(401).json({ msg: "Token tidak ditemukan" });
   }
 
   try {
+    // Log bahwa token ditemukan dan sedang diverifikasi
     console.log("Token ditemukan. Memverifikasi token...");
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    // Log bahwa token berhasil diverifikasi
     console.log("Token berhasil diverifikasi:", decoded);
 
+    // Mencari administrator berdasarkan ID yang didekode dari token
     const administrator = await prisma.administrator.findUnique({
       where: { id: decoded.administratorId },
     });
 
+    // Jika administrator tidak ditemukan atau tidak memiliki peran administrator, log peringatan dan kembalikan respons 403
     if (!administrator || administrator.role !== "administrator") {
       console.warn(
         "Administrator tidak valid atau tidak memiliki akses:",
@@ -356,10 +365,14 @@ const verifyAdmin = async (req, res, next) => {
       return res.status(403).json({ msg: "Akses ditolak" });
     }
 
+    // Log bahwa administrator terverifikasi
     console.log("Administrator terverifikasi:", administrator);
+
+    // Simpan UUID administrator ke dalam request untuk digunakan di handler berikutnya
     req.administratorId = administrator.uuid;
     next();
   } catch (error) {
+    // Log jika terjadi kesalahan saat verifikasi token
     console.error("Error verifying token:", error.message);
     return res.status(403).json({ msg: "Token tidak valid" });
   }
@@ -437,25 +450,29 @@ export const getApbdAdmin = [
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
 
-  // Validasi input
+  // Validasi input menggunakan express-validator
   body("name").notEmpty().withMessage("Name is required"),
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
 
   async (req, res) => {
+    // Log awal ketika handler dipanggil
     console.log("Handler createApbd dipanggil.");
+
+    // Log body yang diterima dari request
     console.log("Body yang diterima:", req.body);
 
     // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      // Log kesalahan validasi jika ada
       console.warn("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { name, year } = req.body;
-    const file = req.file; // File akan ada di sini jika middleware multer berhasil
+    const file = req.file; // Mengambil file jika ada
     const createdById = req.administratorId; // UUID dari admin yang terverifikasi
 
     // Debugging: Log data yang diterima
@@ -467,7 +484,7 @@ export const createApbd = [
     });
 
     try {
-      // Cek apakah kombinasi nama dan tahun sudah ada
+      // Memeriksa apakah APBD dengan nama dan tahun yang sama sudah ada
       console.log("Memeriksa apakah APBD dengan nama dan tahun sudah ada...");
       const existingApbd = await prisma.apbd.findFirst({
         where: {
@@ -477,6 +494,7 @@ export const createApbd = [
       });
 
       if (existingApbd) {
+        // Jika APBD sudah ada, log peringatan dan kembalikan respons 400
         console.warn("APBD sudah ada untuk kombinasi nama dan tahun:", {
           name,
           year,
@@ -491,12 +509,14 @@ export const createApbd = [
         console.log("File ditemukan. Memvalidasi file...");
         const allowedTypes = ["application/pdf"];
         if (!allowedTypes.includes(file.mimetype)) {
+          // Jika tipe file tidak valid, log peringatan dan kembalikan respons 400
           console.warn("File type tidak valid:", file.mimetype);
           return res.status(400).json({
             msg: "File type tidak valid. Hanya file PDF yang diperbolehkan.",
           });
         }
       } else {
+        // Log informasi jika tidak ada file yang diunggah
         console.info("Tidak ada file yang diunggah.");
       }
 
@@ -511,12 +531,14 @@ export const createApbd = [
         },
       });
 
+      // Log sukses jika APBD berhasil dibuat
       console.log("APBD berhasil dibuat:", newApbd);
       return res.status(201).json({
         msg: "APBD dibuat dengan sukses",
         apbd: newApbd,
       });
     } catch (error) {
+      // Log kesalahan jika terjadi error saat pembuatan APBD
       console.error("Terjadi kesalahan saat membuat APBD:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
