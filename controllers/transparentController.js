@@ -467,10 +467,13 @@ export const createApbd = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, year } = req.body;
+    const { name } = req.body;
     const file = req.file; // File akan ada di sini jika middleware multer berhasil
     const createdById = req.administratorId; // UUID dari admin yang terverifikasi
-
+    const year = parseInt(req.body.year, 10);
+    if (isNaN(year)) {
+      return res.status(400).json({ msg: "Tahun tidak valid." });
+    }
     // Debugging: Log data yang diterima
     console.log("Data yang diterima untuk membuat APBD:", {
       name,
@@ -485,7 +488,7 @@ export const createApbd = [
       const existingApbd = await prisma.apbd.findFirst({
         where: {
           name,
-          year,
+          year: year,
         },
       });
 
@@ -499,12 +502,19 @@ export const createApbd = [
         });
       }
 
+      const parsedYear = Number(year);
+      if (isNaN(parsedYear)) {
+        return res
+          .status(400)
+          .json({ msg: "Tahun tidak valid. Harus berupa angka." });
+      }
+
       // Membuat entri baru untuk APBD
       console.log("Membuat APBD baru...");
       const newApbd = await prisma.apbd.create({
         data: {
           name,
-          year: Number(year),
+          year: parsedYear,
           file_url: req.file ? `/uploads/apbd/${req.file.filename}` : null,
           createdById: administrator.id,
         },
