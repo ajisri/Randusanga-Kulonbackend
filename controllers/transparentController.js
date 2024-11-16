@@ -426,25 +426,32 @@ export const getApbdAdmin = [
 
 export const createApbd = [
   verifyAdmin, // Middleware untuk verifikasi admin
+
+  // Validasi input
   body("name").notEmpty().withMessage("Name is required"),
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
 
   async (req, res) => {
-    // Menangani validasi
+    // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error("Validation errors:", errors.array());
+      console.warn("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { name, year } = req.body;
-    const file = req.file; // File akan ada di sini jika `multer` sukses
-    const createdById = req.administratorId; // Mengambil UUID dari admin yang terverifikasi
+    const file = req.file; // File akan ada di sini jika middleware multer berhasil
+    const createdById = req.administratorId; // UUID dari admin yang terverifikasi
 
     // Debugging: Log data yang diterima
-    console.log("Creating APBD with data:", { name, year, file, createdById });
+    console.log("Data yang diterima untuk membuat APBD:", {
+      name,
+      year,
+      file,
+      createdById,
+    });
 
     try {
       // Cek apakah kombinasi nama dan tahun sudah ada
@@ -456,7 +463,7 @@ export const createApbd = [
       });
 
       if (existingApbd) {
-        console.error("APBD already exists with this name and year:", {
+        console.warn("APBD sudah ada untuk kombinasi nama dan tahun:", {
           name,
           year,
         });
@@ -465,17 +472,17 @@ export const createApbd = [
         });
       }
 
-      // Cek apakah file diunggah dan valid
+      // Validasi file jika diunggah
       if (file) {
         const allowedTypes = ["application/pdf"];
         if (!allowedTypes.includes(file.mimetype)) {
-          console.error("Invalid file type:", file.mimetype);
+          console.warn("File type tidak valid:", file.mimetype);
           return res.status(400).json({
-            msg: "Invalid file type. Only PDF files are allowed.",
+            msg: "File type tidak valid. Hanya file PDF yang diperbolehkan.",
           });
         }
       } else {
-        console.log("No file uploaded");
+        console.info("Tidak ada file yang diunggah.");
       }
 
       // Membuat entri baru untuk APBD
@@ -483,18 +490,18 @@ export const createApbd = [
         data: {
           name,
           year,
-          file_url: file ? `/uploads/apbd/${file.filename}` : null, // Menyimpan URL file jika ada file
+          file_url: file ? `/uploads/apbd/${file.filename}` : null, // URL file jika ada file
           createdById,
         },
       });
 
-      console.log("APBD created successfully:", newApbd);
+      console.log("APBD berhasil dibuat:", newApbd);
       return res.status(201).json({
         msg: "APBD dibuat dengan sukses",
         apbd: newApbd,
       });
     } catch (error) {
-      console.error("Error creating APBD:", error); // Log full error
+      console.error("Terjadi kesalahan saat membuat APBD:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
