@@ -439,48 +439,33 @@ export const createApbd = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    console.log("Data yang diterima dari frontend (req.body):", req.body);
-    console.log("File yang diunggah (req.file):", req.file);
-
     const { name, year } = req.body;
-    const file = req.file;
+    const file = req.file; // File akan ada di sini jika `multer` sukses
     const createdById = req.administratorId; // Mengambil UUID dari admin yang terverifikasi
 
     // Debugging: Log data yang diterima
     console.log("Creating APBD with data:", { name, year, file, createdById });
 
-    const parsedYear = parseInt(year, 10);
-    if (isNaN(parsedYear)) {
-      console.error("Year tidak valid:", year);
-      return res.status(400).json({ msg: "Tahun tidak valid" });
-    }
-
-    // Cek apakah kombinasi nama dan tahun sudah ada
     try {
+      // Cek apakah kombinasi nama dan tahun sudah ada
       const existingApbd = await prisma.apbd.findFirst({
         where: {
           name,
-          year: parsedYear,
+          year,
         },
       });
 
       if (existingApbd) {
         console.error("APBD already exists with this name and year:", {
           name,
-          parsedYear,
+          year,
         });
         return res.status(400).json({
           msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
         });
       }
 
-      // Cek apakah createdById ada
-      if (!createdById) {
-        console.error("Administrator ID is missing");
-        return res.status(400).json({ msg: "Administrator ID is missing" });
-      }
-
-      // Periksa apakah file diunggah dan valid
+      // Cek apakah file diunggah dan valid
       if (file) {
         const allowedTypes = ["application/pdf"];
         if (!allowedTypes.includes(file.mimetype)) {
@@ -492,14 +477,13 @@ export const createApbd = [
       } else {
         console.log("No file uploaded");
       }
-      const createdById = req.administratorId;
-      console.log("Administrator UUID:", createdById);
+
       // Membuat entri baru untuk APBD
       const newApbd = await prisma.apbd.create({
         data: {
           name,
-          parsedYear,
-          file_url: file ? `/uploads/apbd/${file.filename}` : null, // Menyimpan file URL jika ada file
+          year,
+          file_url: file ? `/uploads/apbd/${file.filename}` : null, // Menyimpan URL file jika ada file
           createdById,
         },
       });
