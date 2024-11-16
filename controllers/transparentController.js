@@ -504,9 +504,9 @@ export const createApbd = [
       const newApbd = await prisma.apbd.create({
         data: {
           name,
-          year,
-          file_url: file ? `/uploads/apbd/${file.filename}` : null, // URL file jika ada file
-          createdById,
+          year: Number(year),
+          file_url: req.file ? `/uploads/apbd/${req.file.filename}` : null,
+          createdById: administrator.id,
         },
       });
 
