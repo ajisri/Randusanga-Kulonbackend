@@ -554,16 +554,23 @@ export const updateApbd = [
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
+
   async (req, res) => {
+    // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { id } = req.params; // Mengambil id dari URL params
-    const { name, year } = req.body;
+    const { name } = req.body;
     const file = req.file;
     const createdById = req.administratorId;
+    const year = parseInt(req.body.year, 10); // Konversi `year` menjadi integer
+
+    if (isNaN(year)) {
+      return res.status(400).json({ msg: "Tahun tidak valid." });
+    }
 
     try {
       // Cek apakah data dengan id tersebut ada
@@ -579,7 +586,7 @@ export const updateApbd = [
       const duplicateApbd = await prisma.apbd.findFirst({
         where: {
           name,
-          year,
+          year: year, // Pastikan `year` dalam tipe integer
           NOT: { id: parseInt(id, 10) },
         },
       });
@@ -606,7 +613,7 @@ export const updateApbd = [
         where: { id: parseInt(id, 10) },
         data: {
           name,
-          year,
+          year: year, // Pastikan `year` dalam tipe integer
           file_url: file
             ? `/uploads/apbd/${file.filename}`
             : existingApbd.file_url,
@@ -617,8 +624,15 @@ export const updateApbd = [
 
       // Hapus file lama jika ada
       if (filePathToDelete && fs.existsSync(filePathToDelete)) {
-        fs.unlinkSync(filePathToDelete);
-        console.log(`Successfully deleted old file: ${filePathToDelete}`);
+        try {
+          fs.unlinkSync(filePathToDelete);
+          console.log(`File lama berhasil dihapus: ${filePathToDelete}`);
+        } catch (error) {
+          console.error(
+            `Gagal menghapus file lama: ${filePathToDelete}`,
+            error
+          );
+        }
       }
 
       return res.status(200).json({
@@ -626,8 +640,11 @@ export const updateApbd = [
         apbd: updatedApbd,
       });
     } catch (error) {
-      console.error("Error saat memperbarui APBD:", error);
-      res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+      console.error("Terjadi kesalahan saat memperbarui APBD:", error.message);
+      return res.status(500).json({
+        msg: "Terjadi kesalahan pada server",
+        error: error.message,
+      });
     }
   },
 ];
