@@ -13,6 +13,7 @@ import {
   getApbdPengunjung,
   downloadFileApbd,
   getApbdAdmin,
+  getAllApbd,
   createApbd,
   updateApbd,
   deleteApbd,
@@ -34,6 +35,7 @@ import {
   getAllBudgetItems,
   updateBudgetItem,
   deleteBudgetItem,
+  getAllApbd,
 } from "../controllers/transparentController.js";
 import { verifyToken, superOnly } from "../middleware/verifyToken.js";
 
@@ -68,6 +70,7 @@ router.get("/downloadapbd/:filename", downloadFileApbd);
 
 //admin
 router.get("/apbd", verifyToken, superOnly, getApbdAdmin);
+router.get("/allapbd", verifyToken, superOnly, getAllApbd);
 router.post(
   "/capbd",
   verifyToken,
