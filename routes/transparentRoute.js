@@ -35,7 +35,6 @@ import {
   getAllBudgetItems,
   updateBudgetItem,
   deleteBudgetItem,
-  getAllApbd,
 } from "../controllers/transparentController.js";
 import { verifyToken, superOnly } from "../middleware/verifyToken.js";
 
