@@ -698,29 +698,35 @@ export const deleteApbd = [
 export const createKeuangan = [
   verifyAdmin, // Middleware untuk verifikasi admin
   body("name").notEmpty().withMessage("Name is required"),
+  body("apbdId").isInt().withMessage("APBD ID must be a valid integer"),
   async (req, res) => {
     handleValidationErrors(req, res);
 
-    const { name, year, file_url } = req.body;
-    const createdById = req.administratorId;
+    const { name, apbdId } = req.body; // Mengambil nama dan apbdId dari body request
+    const createdById = req.administratorId; // ID administrator yang membuat entri
 
     try {
+      // Validasi keberadaan APBD
+      const apbd = await prisma.apbd.findUnique({
+        where: { id: apbdId },
+      });
+
+      if (!apbd) {
+        return res.status(404).json({ msg: "APBD not found" });
+      }
+
       // Membuat entri Keuangan
       const keuangan = await prisma.keuangan.create({
         data: {
           name,
+          apbdId, // Menghubungkan Keuangan dengan APBD yang dipilih
           createdById,
-          filePendukung: {
-            create: {
-              year,
-              file_url,
-            },
-          },
         },
         include: {
-          filePendukung: true, // Menyertakan file pendukung dalam respons
+          apbd: true, // Menyertakan informasi APBD dalam respons
         },
       });
+
       res.status(201).json(keuangan);
     } catch (error) {
       console.error("Error creating Keuangan:", error);
