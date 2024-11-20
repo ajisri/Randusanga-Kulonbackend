@@ -408,7 +408,5 @@ model BudgetItem {
   createdById  String
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
   subkategori  Subkategori @relation(fields: [subkategoriId], references: [uuid], onDelete: Cascade)
-  file_url     String?
-  year         Int
 }
 
