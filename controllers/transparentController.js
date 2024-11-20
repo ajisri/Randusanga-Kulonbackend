@@ -750,20 +750,50 @@ export const getAllKeuangan = [
 ];
 
 export const updateKeuangan = [
-  verifyAdmin,
+  verifyAdmin, // Middleware untuk verifikasi admin
   body("name").optional().notEmpty().withMessage("Name cannot be empty"),
+  body("apbdId")
+    .optional()
+    .isInt()
+    .withMessage("APBD ID must be a valid integer"),
   async (req, res) => {
     handleValidationErrors(req, res);
-    const { uuid } = req.params;
-    const { name } = req.body;
+
+    const { uuid } = req.params; // Mengambil UUID dari parameter
+    const { name, apbdId } = req.body; // Mengambil kolom yang akan diupdate dari body request
+    const createdById = req.administratorId;
     try {
+      // Validasi keberadaan keuangan berdasarkan UUID
+      const existingKeuangan = await prisma.keuangan.findUnique({
+        where: { uuid },
+      });
+
+      if (!existingKeuangan) {
+        return res.status(404).json({ msg: "Keuangan not found" });
+      }
+
+      // Jika `apbdId` disediakan, validasi bahwa ID tersebut valid
+      if (apbdId) {
+        const apbd = await prisma.apbd.findUnique({
+          where: { id: apbdId },
+        });
+
+        if (!apbd) {
+          return res.status(404).json({ msg: "APBD not found" });
+        }
+      }
+
+      // Update keuangan dengan data baru
       const updatedKeuangan = await prisma.keuangan.update({
         where: { uuid },
         data: {
           name,
-          updated_at: new Date(),
+          apbdId,
+          createdById,
+          updated_at: new Date(), // Otomatis mengisi waktu update
         },
       });
+
       res.status(200).json(updatedKeuangan);
     } catch (error) {
       console.error("Error updating Keuangan:", error);
