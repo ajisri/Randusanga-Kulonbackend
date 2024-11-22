@@ -1121,9 +1121,6 @@ export const createBudgetItem = [
   check("budgetItemsData.*.realization")
     .notEmpty()
     .withMessage("Realization is required"),
-  check("budgetItemsData.*.year")
-    .isInt()
-    .withMessage("Year is required and must be an integer"),
   check("budgetItemsData.*.subkategoriId")
     .notEmpty()
     .withMessage("SubkategoriId is required"),
@@ -1149,11 +1146,10 @@ export const createBudgetItem = [
       const existingUuids = new Set(existingItems.map((item) => item.uuid));
 
       for (const item of budgetItemsData) {
-        const { uuid, budget, realization, year } = item;
+        const { uuid, budget, realization } = item;
         const budgetValue = parseFloat(budget);
         const realizationValue = parseFloat(realization);
         const remaining = budgetValue - realizationValue;
-        const yearValue = year || new Date().getFullYear();
 
         if (uuid) {
           const existingItem = existingItems.find((b) => b.uuid === uuid);
@@ -1165,7 +1161,6 @@ export const createBudgetItem = [
                 budget: budgetValue,
                 realization: realizationValue,
                 remaining,
-                year: yearValue,
                 createdById,
               },
             });
@@ -1181,7 +1176,6 @@ export const createBudgetItem = [
               budget: budgetValue,
               realization: realizationValue,
               remaining,
-              year: yearValue,
               subkategoriId,
               createdById,
             },
