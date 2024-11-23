@@ -947,6 +947,11 @@ export const createSubkategori = [
     const createdById = req.administratorId; // ID admin yang melakukan operasi
     const subkategoriData = req.body.subkategoriData; // Data subkategori yang dikirim
     const kategoriId = subkategoriData[0].kategoriId; // KategoriId dari data pertama
+    // Di backend, tambahkan log untuk memeriksa data yang diterima
+    console.log(
+      "Payload subkategoriData yang diterima:",
+      req.body.subkategoriData
+    );
 
     try {
       // Mulai transaksi Prisma
