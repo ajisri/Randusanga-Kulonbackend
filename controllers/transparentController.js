@@ -965,6 +965,17 @@ export const createSubkategori = [
           const { uuid, name, budgetItems } = subkategori;
           let createdSubkategori;
 
+          // Hitung nilai total budget, realization, dan remaining
+          const totalBudget = budgetItems.reduce(
+            (sum, item) => sum + parseFloat(item.budget || 0),
+            0
+          );
+          const totalRealization = budgetItems.reduce(
+            (sum, item) => sum + parseFloat(item.realization || 0),
+            0
+          );
+          const remaining = totalBudget - totalRealization;
+
           // Jika UUID ada, berarti data di-update, jika tidak, maka dibuat baru
           if (uuid) {
             const existingSubkategori = existingSubkategoris.find(
@@ -973,7 +984,13 @@ export const createSubkategori = [
             if (existingSubkategori) {
               createdSubkategori = await prisma.subkategori.update({
                 where: { uuid },
-                data: { name, kategoriId },
+                data: {
+                  name,
+                  kategoriId,
+                  totalBudget,
+                  totalRealization,
+                  remaining,
+                },
               });
               uuidsToKeep.add(uuid);
             } else {
@@ -996,6 +1013,9 @@ export const createSubkategori = [
                 number,
                 kategoriId,
                 createdById,
+                totalBudget,
+                totalRealization,
+                remaining,
               },
             });
           }
@@ -1004,14 +1024,17 @@ export const createSubkategori = [
 
           // Mengelola data budgetItems yang terkait dengan subkategori
           for (const budgetItem of budgetItems) {
-            const { budget, realization, remaining } = budgetItem;
+            const { budget, realization } = budgetItem;
+
+            // Remaining dihitung sebagai selisih antara budget dan realization
+            const itemRemaining = parseFloat(budget) - parseFloat(realization);
 
             const createdBudget = await prisma.budgetItem.create({
               data: {
                 subkategoriId: createdSubkategori.uuid,
                 budget,
                 realization,
-                remaining,
+                remaining: itemRemaining,
                 createdById,
               },
             });
