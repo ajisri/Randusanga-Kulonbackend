@@ -917,119 +917,137 @@ export const deleteKategori = [
 // Subkategori CRUD
 export const createSubkategori = [
   verifyAdmin,
+  // Validasi input menggunakan express-validator
   check("subkategoriData")
     .isArray({ min: 1 })
     .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
-  check("subkategoriData.*.name").notEmpty().withMessage("Name is required"),
+  check("subkategoriData.*.name")
+    .notEmpty()
+    .withMessage("Nama subkategori harus diisi"),
   check("subkategoriData.*.kategoriId")
     .isUUID()
-    .withMessage("KategoriId must be a valid UUID"),
+    .withMessage("KategoriId harus merupakan UUID yang valid"),
   check("subkategoriData.*.budgetItems")
     .isArray()
     .withMessage("budgetItems harus berupa array"),
   check("subkategoriData.*.budgetItems.*.budget")
     .isDecimal()
-    .withMessage("Budget must be a valid number"),
+    .withMessage("Budget harus berupa angka yang valid"),
   check("subkategoriData.*.budgetItems.*.realization")
     .isDecimal()
-    .withMessage("Realization must be a valid number"),
+    .withMessage("Realisasi harus berupa angka yang valid"),
 
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      // Jika ada kesalahan validasi, kembalikan respons 400
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const createdById = req.administratorId;
-    const subkategoriData = req.body.subkategoriData;
-    const kategoriId = subkategoriData[0].kategoriId;
-
-    const prismaTransaction = await prisma.$transaction; // Mulai transaksi
+    const createdById = req.administratorId; // ID admin yang melakukan operasi
+    const subkategoriData = req.body.subkategoriData; // Data subkategori yang dikirim
+    const kategoriId = subkategoriData[0].kategoriId; // KategoriId dari data pertama
 
     try {
-      const createdSubkategoris = [];
-      const uuidsToKeep = new Set();
-      const createdBudgetItems = [];
+      // Mulai transaksi Prisma
+      const result = await prisma.$transaction(async (prisma) => {
+        const createdSubkategoris = [];
+        const createdBudgetItems = [];
+        const uuidsToKeep = new Set();
 
-      const existingSubkategoris = await prisma.subkategori.findMany({
-        where: { kategoriId },
-      });
-      const existingUuids = new Set(existingSubkategoris.map((s) => s.uuid));
+        // Ambil subkategori yang sudah ada berdasarkan kategoriId
+        const existingSubkategoris = await prisma.subkategori.findMany({
+          where: { kategoriId },
+        });
+        const existingUuids = new Set(existingSubkategoris.map((s) => s.uuid));
 
-      for (const subkategori of subkategoriData) {
-        const { uuid, name, budgetItems } = subkategori;
+        for (const subkategori of subkategoriData) {
+          const { uuid, name, budgetItems } = subkategori;
+          let createdSubkategori;
 
-        let createdSubkategori;
-        if (uuid) {
-          const existingSubkategori = existingSubkategoris.find(
-            (s) => s.uuid === uuid
-          );
-          if (existingSubkategori) {
-            createdSubkategori = await prisma.subkategori.update({
-              where: { uuid },
-              data: { name, kategoriId },
-            });
-            uuidsToKeep.add(uuid);
+          // Jika UUID ada, berarti data di-update, jika tidak, maka dibuat baru
+          if (uuid) {
+            const existingSubkategori = existingSubkategoris.find(
+              (s) => s.uuid === uuid
+            );
+            if (existingSubkategori) {
+              createdSubkategori = await prisma.subkategori.update({
+                where: { uuid },
+                data: { name, kategoriId },
+              });
+              uuidsToKeep.add(uuid);
+            } else {
+              console.error(
+                "Subkategori dengan UUID ini tidak ditemukan:",
+                uuid
+              );
+              throw new Error("Subkategori tidak ditemukan untuk update");
+            }
           } else {
-            console.error("Subkategori dengan UUID ini tidak ditemukan:", uuid);
+            // Membuat subkategori baru jika UUID tidak ada
+            const count = await prisma.subkategori.count({
+              where: { kategoriId },
+            });
+            const number = (count + 1).toString();
+
+            createdSubkategori = await prisma.subkategori.create({
+              data: {
+                name,
+                number,
+                kategoriId,
+                createdById,
+              },
+            });
           }
-        } else {
-          const count = await prisma.subkategori.count({
-            where: { kategoriId },
-          });
-          const number = (count + 1).toString();
 
-          createdSubkategori = await prisma.subkategori.create({
-            data: {
-              name,
-              number,
+          createdSubkategoris.push(createdSubkategori);
+
+          // Mengelola data budgetItems yang terkait dengan subkategori
+          for (const budgetItem of budgetItems) {
+            const { budget, realization, remaining } = budgetItem;
+
+            const createdBudget = await prisma.budgetItem.create({
+              data: {
+                subkategoriId: createdSubkategori.uuid,
+                budget,
+                realization,
+                remaining,
+                createdById,
+              },
+            });
+            createdBudgetItems.push(createdBudget);
+          }
+        }
+
+        // Hapus subkategori yang tidak ada di `subkategoriData` berdasarkan UUID
+        const uuidsToDelete = [...existingUuids].filter(
+          (uuid) => !uuidsToKeep.has(uuid)
+        );
+
+        if (uuidsToDelete.length > 0) {
+          await prisma.subkategori.deleteMany({
+            where: {
+              uuid: { in: uuidsToDelete },
               kategoriId,
-              createdById,
             },
           });
         }
 
-        createdSubkategoris.push(createdSubkategori);
-
-        for (const budgetItem of budgetItems) {
-          const { budget, realization, remaining } = budgetItem;
-
-          const createdBudget = await prisma.budgetItem.create({
-            data: {
-              subkategoriId: createdSubkategori.uuid,
-              budget,
-              realization,
-              remaining,
-              createdById,
-            },
-          });
-          createdBudgetItems.push(createdBudget);
-        }
-      }
-
-      const uuidsToDelete = [...existingUuids].filter(
-        (uuid) => !uuidsToKeep.has(uuid)
-      );
-      await prisma.subkategori.deleteMany({
-        where: {
-          uuid: { in: uuidsToDelete },
-          kategoriId,
-        },
+        return {
+          createdSubkategoris,
+          createdBudgetItems,
+        };
       });
 
-      // Commit transaksi setelah semua berhasil
-      await prismaTransaction.commit();
-
+      // Berikan respons sukses setelah transaksi berhasil
       return res.status(200).json({
         message: "Subkategori dan Budget berhasil diatur",
-        count: createdSubkategoris.length,
-        createdSubkategoris,
-        createdBudgetItems,
+        count: result.createdSubkategoris.length,
+        createdSubkategoris: result.createdSubkategoris,
+        createdBudgetItems: result.createdBudgetItems,
       });
     } catch (error) {
-      // Jika terjadi error, rollback transaksi
-      await prismaTransaction.rollback();
-
+      // Jika terjadi error, kembalikan respons 500
       console.error("Error managing Subkategori and Budget:", error);
       return res.status(500).json({ msg: "Terjadi kesalahan pada server." });
     }
