@@ -1097,7 +1097,9 @@ export const getSubkategoriByKategoriId = [
       });
 
       if (!subkategoris || subkategoris.length === 0) {
-        return res.status(201).json([]);
+        return res
+          .status(404)
+          .json({ message: "Data subkategori tidak ditemukan" });
       }
 
       res.status(200).json(subkategoris);
