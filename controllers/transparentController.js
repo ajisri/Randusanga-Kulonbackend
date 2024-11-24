@@ -463,21 +463,14 @@ export const getAllApbd = [
 export const getAllDataApbd = [
   async (req, res) => {
     try {
-      // Query ke database Prisma untuk mengambil data apbd beserta semua relasi terkait
       const dataApbd = await prisma.apbd.findMany({
         include: {
-          createdBy: true, // Mengambil data administrator yang membuat apbd
+          createdBy: true,
           keuangan: {
             include: {
-              createdBy: true, // Mengambil data administrator yang membuat keuangan
               kategori: {
                 include: {
-                  createdBy: true, // Mengambil data administrator yang membuat kategori
-                  subkategori: {
-                    include: {
-                      createdBy: true, // Mengambil data administrator yang membuat subkategori
-                    },
-                  },
+                  subkategori: true,
                 },
               },
             },
@@ -485,13 +478,7 @@ export const getAllDataApbd = [
         },
       });
 
-      // Cek apakah data ditemukan atau kosong
-      if (dataApbd.length === 0) {
-        return res.status(404).json({ msg: "Data tidak ditemukan" });
-      }
-
-      // Response berhasil dengan data yang ditemukan
-      res.status(200).json(dataApbd);
+      res.status(200).json({ data: dataApbd });
     } catch (error) {
       console.error("Error fetching data:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
