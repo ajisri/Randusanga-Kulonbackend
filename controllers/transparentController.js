@@ -447,6 +447,19 @@ export const getApbdAdmin = [
   },
 ];
 
+export const getAllApbd = [
+  verifyAdmin,
+  async (req, res) => {
+    try {
+      const apbds = await prisma.apbd.findMany();
+      res.status(200).json(apbds);
+    } catch (error) {
+      console.error("Error fetching:", error);
+      res.status(500).json({ msg: "Server error occurred" });
+    }
+  },
+];
+
 export const getAllDataApbd = [
   verifyAdmin,
   async (req, res) => {
