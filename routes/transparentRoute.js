@@ -13,7 +13,7 @@ import {
   getApbdPengunjung,
   downloadFileApbd,
   getApbdAdmin,
-  getAllApbd,
+  getAllDataApbd,
   createApbd,
   updateApbd,
   deleteApbd,
@@ -69,7 +69,7 @@ router.get("/downloadapbd/:filename", downloadFileApbd);
 
 //admin
 router.get("/apbd", verifyToken, superOnly, getApbdAdmin);
-router.get("/allapbd", verifyToken, superOnly, getAllApbd);
+router.get("/allapbd", verifyToken, superOnly, getAllDataApbd);
 router.post(
   "/capbd",
   verifyToken,
