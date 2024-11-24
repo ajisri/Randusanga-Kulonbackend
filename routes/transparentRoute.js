@@ -66,11 +66,11 @@ router.delete("/produk_hukum/:uuid", verifyToken, superOnly, deleteProdukHukum);
 //apbd
 //pengunjung
 router.get("/apbdp", getApbdPengunjung);
+router.get("/allapbdp", getAllDataApbd);
 router.get("/downloadapbd/:filename", downloadFileApbd);
 
 //admin
 router.get("/apbd", verifyToken, superOnly, getApbdAdmin);
-router.get("/allapbdp", verifyToken, superOnly, getAllDataApbd);
 router.get("/allapbd", verifyToken, superOnly, getAllApbd);
 router.post(
   "/capbd",

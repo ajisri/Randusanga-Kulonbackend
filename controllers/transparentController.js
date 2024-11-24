@@ -461,7 +461,6 @@ export const getAllApbd = [
 ];
 
 export const getAllDataApbd = [
-  verifyAdmin,
   async (req, res) => {
     try {
       // Query ke database Prisma untuk mengambil data apbd beserta semua relasi terkait
