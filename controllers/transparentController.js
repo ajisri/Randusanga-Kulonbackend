@@ -1081,16 +1081,6 @@ export const getSubkategoriByKategoriId = [
     try {
       const subkategoris = await prisma.subkategori.findMany({
         where: { kategoriId },
-        include: {
-          budgetItems: {
-            select: {
-              uuid: true,
-              budget: true,
-              realization: true,
-              remaining: true,
-            },
-          },
-        },
         orderBy: {
           created_at: "asc",
         },
