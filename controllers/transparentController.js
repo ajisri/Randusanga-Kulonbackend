@@ -473,7 +473,6 @@ export const getAllDataApbd = [
             include: {
               subkategori: {
                 include: {
-                  budgetItems: true,
                   createdBy: true,
                 },
               },
