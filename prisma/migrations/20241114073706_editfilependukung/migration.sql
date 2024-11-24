@@ -6,7 +6,6 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `Keuangan` DROP FOREIGN KEY `Keuangan_filePendukungId_fkey`;
 
 -- AlterTable
 ALTER TABLE `Keuangan` DROP COLUMN `filePendukungId`,
