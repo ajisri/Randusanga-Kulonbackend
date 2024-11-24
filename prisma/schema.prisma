@@ -58,7 +58,6 @@ model Administrator {
   Keuangan Keuangan[]
   Kategori Kategori[]
   Subkategori Subkategori[]
-  BudgetItem BudgetItem[]
   Apbd Apbd[]
 }
 
@@ -389,24 +388,8 @@ model Subkategori {
   updated_at   DateTime    @updatedAt
   createdById  String
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
-  budgetItems  BudgetItem[]
   kategori     Kategori    @relation(fields: [kategoriId], references: [uuid], onDelete: Cascade)
   totalBudget  Decimal     @default(0)
   totalRealization Decimal @default(0)
   remaining    Decimal     @default(0)
 }
-
-model BudgetItem {
-  id           Int         @id @default(autoincrement())
-  uuid         String      @default(uuid()) @unique
-  subkategoriId String
-  budget       Decimal
-  realization  Decimal
-  remaining    Decimal
-  created_at   DateTime    @default(now())
-  updated_at   DateTime    @updatedAt
-  createdById  String
-  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
-  subkategori  Subkategori @relation(fields: [subkategoriId], references: [uuid], onDelete: Cascade)
-}
-
