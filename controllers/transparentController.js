@@ -464,31 +464,35 @@ export const getAllDataApbd = [
   verifyAdmin,
   async (req, res) => {
     try {
-      // Query ke database menggunakan Prisma
-      const dataKeuangan = await prisma.keuangan.findMany({
+      // Query ke database Prisma untuk mengambil data apbd beserta semua relasi terkait
+      const dataApbd = await prisma.apbd.findMany({
         include: {
-          apbd: true,
-          createdBy: true,
-          kategori: {
+          createdBy: true, // Mengambil data administrator yang membuat apbd
+          keuangan: {
             include: {
-              subkategori: {
+              createdBy: true, // Mengambil data administrator yang membuat keuangan
+              kategori: {
                 include: {
-                  createdBy: true,
+                  createdBy: true, // Mengambil data administrator yang membuat kategori
+                  subkategori: {
+                    include: {
+                      createdBy: true, // Mengambil data administrator yang membuat subkategori
+                    },
+                  },
                 },
               },
-              createdBy: true,
             },
           },
         },
       });
 
       // Cek apakah data ditemukan atau kosong
-      if (dataKeuangan.length === 0) {
+      if (dataApbd.length === 0) {
         return res.status(404).json({ msg: "Data tidak ditemukan" });
       }
 
       // Response berhasil dengan data yang ditemukan
-      res.status(200).json(dataKeuangan);
+      res.status(200).json(dataApbd);
     } catch (error) {
       console.error("Error fetching data:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
