@@ -408,46 +408,32 @@ export const getAnkorAdmin = [
 ];
 
 export const createAnkor = [
-  verifyAdmin, // Middleware untuk verifikasi admin
-  // Validasi input
-  body("name").notEmpty().withMessage("Name is required"),
-
+  verifyAdmin, // Middleware verifikasi admin
+  body("name").notEmpty().withMessage("Name is required"), // Validasi input
   async (req, res) => {
-    console.log("Body yang diterima:", req.body);
-    // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.warn("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { name } = req.body;
     const createdById = req.administratorId;
+
     try {
-      // Cek apakah kombinasi nama sudah ada
-      console.log("Memeriksa apakah Parameter Ankor sudah ada...");
+      console.log("Memeriksa apakah Ankor sudah ada...");
       const existingAnkor = await prisma.ankor.findFirst({
-        where: {
-          name,
-        },
+        where: { name },
       });
 
       if (existingAnkor) {
-        console.warn("Parameter Ankor sudah ada :", {
-          name,
-        });
         return res.status(400).json({
           msg: "Parameter Ankor sudah ada, tidak bisa membuat data baru",
         });
       }
 
-      // Membuat entri baru untuk APBD
       console.log("Membuat Ankor baru...");
-      const newAnkor = await prisma.apbd.create({
-        data: {
-          name,
-          createdById,
-        },
+      const newAnkor = await prisma.ankor.create({
+        data: { name, createdById },
       });
 
       console.log("Parameter Ankor berhasil dibuat:", newAnkor);
@@ -456,10 +442,7 @@ export const createAnkor = [
         ankor: newAnkor,
       });
     } catch (error) {
-      console.error(
-        "Terjadi kesalahan saat membuat Parameter Ankor:",
-        error.message
-      );
+      console.error("Terjadi kesalahan saat membuat Ankor:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
@@ -472,7 +455,7 @@ export const updateAnkor = [
   verifyAdmin, // Middleware untuk verifikasi admin
   body("name").notEmpty().withMessage("Name is required"),
   async (req, res) => {
-    // Menangani validasi input
+    // Validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -480,21 +463,29 @@ export const updateAnkor = [
 
     const { id } = req.params; // Mengambil id dari URL params
     const { name } = req.body;
-    const createdById = req.administratorId;
+    const createdById = req.administratorId; // ID admin yang membuat/mengupdate data
+
     try {
-      // Cek apakah data dengan id tersebut ada
+      // Pastikan ID valid
+      const parsedId = parseInt(id, 10);
+      if (isNaN(parsedId)) {
+        return res.status(400).json({ msg: "ID tidak valid" });
+      }
+
+      // Cek apakah data dengan ID tersebut ada
       const existingAnkor = await prisma.ankor.findUnique({
-        where: { id: parseInt(id, 10) },
+        where: { id: parsedId },
       });
 
       if (!existingAnkor) {
         return res.status(404).json({ msg: "Parameter Ankor tidak ditemukan" });
       }
 
+      // Cek duplikasi nama (dengan pengecualian data yang sedang di-update)
       const duplicateAnkor = await prisma.ankor.findFirst({
         where: {
           name,
-          NOT: { id: parseInt(id, 10) },
+          NOT: { id: parsedId },
         },
       });
 
@@ -504,8 +495,9 @@ export const updateAnkor = [
         });
       }
 
+      // Update data Ankor
       const updatedAnkor = await prisma.ankor.update({
-        where: { id: parseInt(id, 10) },
+        where: { id: parsedId },
         data: {
           name,
           updated_at: new Date(),
@@ -518,7 +510,6 @@ export const updateAnkor = [
         ankor: updatedAnkor,
       });
     } catch (error) {
-      console.error("Terjadi kesalahan saat memperbarui Data:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
