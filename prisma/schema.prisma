@@ -59,6 +59,9 @@ model Administrator {
   Kategori Kategori[]
   Subkategori Subkategori[]
   Apbd Apbd[]
+  Ankor Ankor[]
+  Kategoriankor Kategoriankor[]
+  Subkategoriankor Subkategoriankor[]
 }
 
 model User{
@@ -392,4 +395,40 @@ model Subkategori {
   totalBudget  Decimal     @default(0)
   totalRealization Decimal @default(0)
   remaining    Decimal     @default(0)
+}
+
+model Ankor {
+  id           Int         @id @default(autoincrement())
+  name         String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  kategoriankor Kategoriankor[]
+}
+
+model Kategoriankor {
+ id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  name         String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  ankorId       Int
+  ankor         Ankor        @relation(fields: [ankorId], references: [id], onDelete: Cascade)
+  subkategoriankor     Subkategoriankor[]
+}
+
+model Subkategoriankor {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  name         String
+  file_url   String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  kategoriankorId       Int
+  kategoriankor         Kategoriankor        @relation(fields: [kategoriankorId], references: [id], onDelete: Cascade)
 }
