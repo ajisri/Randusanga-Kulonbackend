@@ -10,6 +10,10 @@ import {
   createProdukHukum,
   updateProdukHukum,
   deleteProdukHukum,
+  getAnkorAdmin,
+  createAnkor,
+  updateAnkor,
+  deleteAnkor,
   getApbdPengunjung,
   downloadFileApbd,
   getApbdAdmin,
@@ -40,6 +44,12 @@ import {
 import { verifyToken, superOnly } from "../middleware/verifyToken.js";
 
 const router = express.Router();
+
+//Ankor
+router.get("/ankor", verifyToken, superOnly, getAnkorAdmin);
+router.post("/cankor", verifyToken, superOnly, createAnkor);
+router.patch("/ankor/:id", verifyToken, superOnly, updateAnkor);
+router.delete("/ankor/:id", verifyToken, superOnly, deleteAnkor);
 
 //pengunjung
 router.get("/produk_hukump", getProdukHukumPengunjung);

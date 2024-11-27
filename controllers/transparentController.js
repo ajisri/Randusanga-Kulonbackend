@@ -378,6 +378,155 @@ const verifyAdmin = async (req, res, next) => {
   }
 };
 
+//ANKOR
+export const getAnkorAdmin = [
+  verifyAdmin,
+  async (req, res) => {
+    try {
+      // Ambil data dari tabel
+      const ankor = await prisma.ankor.findMany({
+        include: {
+          createdBy: {
+            select: {
+              name: true, // Hanya mengambil field 'name' dari relasi 'createdBy'
+            },
+          },
+        },
+      });
+
+      // Cek jika tidak ada data
+      if (ankor.length === 0) {
+        return res.status(200).json({ ankor: [] });
+      }
+
+      res.status(200).json({ ankor });
+    } catch (error) {
+      console.error("Error saat mengambil data ankor untuk admin:", error);
+      res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    }
+  },
+];
+
+export const createAnkor = [
+  verifyAdmin, // Middleware untuk verifikasi admin
+
+  // Validasi input
+  body("name").notEmpty().withMessage("Name is required"),
+
+  async (req, res) => {
+    // Menangani validasi input
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.warn("Validation errors:", errors.array());
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name } = req.body;
+    const createdById = req.administratorId;
+    try {
+      // Cek apakah kombinasi nama sudah ada
+      console.log("Memeriksa apakah Parameter Ankor sudah ada...");
+      const existingAnkor = await prisma.ankor.findFirst({
+        where: {
+          name,
+        },
+      });
+
+      if (existingAnkor) {
+        console.warn("Parameter Ankor sudah ada :", {
+          name,
+        });
+        return res.status(400).json({
+          msg: "Parameter Ankor sudah ada, tidak bisa membuat data baru",
+        });
+      }
+
+      // Membuat entri baru untuk APBD
+      console.log("Membuat Ankor baru...");
+      const newAnkor = await prisma.apbd.create({
+        data: {
+          name,
+          createdById,
+        },
+      });
+
+      console.log("Parameter Ankor berhasil dibuat:", newAnkor);
+      return res.status(201).json({
+        msg: "Parameter Ankor dibuat dengan sukses",
+        ankor: newAnkor,
+      });
+    } catch (error) {
+      console.error(
+        "Terjadi kesalahan saat membuat Parameter Ankor:",
+        error.message
+      );
+      return res.status(500).json({
+        msg: "Terjadi kesalahan pada server",
+        error: error.message,
+      });
+    }
+  },
+];
+
+export const updateAnkor = [
+  verifyAdmin, // Middleware untuk verifikasi admin
+  body("name").notEmpty().withMessage("Name is required"),
+  async (req, res) => {
+    // Menangani validasi input
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { id } = req.params; // Mengambil id dari URL params
+    const { name } = req.body;
+    const createdById = req.administratorId;
+    try {
+      // Cek apakah data dengan id tersebut ada
+      const existingAnkor = await prisma.ankor.findUnique({
+        where: { id: parseInt(id, 10) },
+      });
+
+      if (!existingAnkor) {
+        return res.status(404).json({ msg: "Parameter Ankor tidak ditemukan" });
+      }
+
+      const duplicateAnkor = await prisma.ankor.findFirst({
+        where: {
+          name,
+          NOT: { id: parseInt(id, 10) },
+        },
+      });
+
+      if (duplicateAnkor) {
+        return res.status(400).json({
+          msg: "Nama Parameter Ankor sudah ada pada data lain, tidak bisa memperbarui data",
+        });
+      }
+
+      const updatedAnkor = await prisma.ankor.update({
+        where: { id: parseInt(id, 10) },
+        data: {
+          name,
+          updated_at: new Date(),
+          createdById,
+        },
+      });
+
+      return res.status(200).json({
+        msg: "Parameter Ankor diperbarui dengan sukses",
+        ankor: updatedAnkor,
+      });
+    } catch (error) {
+      console.error("Terjadi kesalahan saat memperbarui Data:", error.message);
+      return res.status(500).json({
+        msg: "Terjadi kesalahan pada server",
+        error: error.message,
+      });
+    }
+  },
+];
+
 //APBD
 export const getApbdPengunjung = async (req, res) => {
   try {
@@ -685,36 +834,23 @@ export const deleteApbd = [
     }
 
     try {
-      // Cek apakah data APBD ada
-      const existingApbd = await prisma.apbd.findUnique({
+      const existingAnkor = await prisma.ankor.findUnique({
         where: { id: parseInt(id, 10) },
       });
 
-      if (!existingApbd) {
-        return res.status(404).json({ msg: "APBD tidak ditemukan" });
+      if (!existingAnkor) {
+        return res.status(404).json({ msg: "Data tidak ditemukan" });
       }
 
-      // Hapus file jika ada
-      const filePathToDelete = path.join(
-        __dirname,
-        "..",
-        "uploads/apbd",
-        path.basename(existingApbd.file_url)
-      );
-
-      if (fs.existsSync(filePathToDelete)) {
-        fs.unlinkSync(filePathToDelete);
-        console.log(`Successfully deleted file: ${filePathToDelete}`);
-      }
-
-      // Hapus data APBD dari database
-      await prisma.apbd.delete({
+      await prisma.ankor.delete({
         where: { id: parseInt(id, 10) },
       });
 
-      return res.status(200).json({ msg: "APBD dihapus dengan sukses" });
+      return res
+        .status(200)
+        .json({ msg: "Parameter Ankor dihapus dengan sukses" });
     } catch (error) {
-      console.error("Error saat menghapus APBD:", error);
+      console.error("Error saat menghapus Parameter Ankor:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
     }
   },
@@ -761,7 +897,6 @@ export const createKeuangan = [
   },
 ];
 
-// Fungsi lainnya mengikuti pola yang sama
 export const getAllKeuangan = [
   verifyAdmin,
   async (req, res) => {
