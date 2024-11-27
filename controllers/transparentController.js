@@ -553,7 +553,7 @@ export const getKategoriAnkorAdmin = [
   async (req, res) => {
     try {
       const kategoriankors = await prisma.kategoriankor.findMany();
-      res.status(200).json(kategoriankor);
+      res.status(200).json(kategoriankors);
     } catch (error) {
       console.error("Error fetching data:", error);
       res.status(500).json({ msg: "Server error occurred" });
