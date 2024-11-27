@@ -10,6 +10,10 @@ import {
   createProdukHukum,
   updateProdukHukum,
   deleteProdukHukum,
+  getKategoriAnkorAdmin,
+  createKategoriAnkor,
+  updateKategoriAnkor,
+  deleteKategoriAnkor,
   getAnkorAdmin,
   createAnkor,
   updateAnkor,
@@ -50,6 +54,17 @@ router.get("/ankor", verifyToken, superOnly, getAnkorAdmin);
 router.post("/cankor", verifyToken, superOnly, createAnkor);
 router.patch("/ankor/:id", verifyToken, superOnly, updateAnkor);
 router.delete("/ankor/:id", verifyToken, superOnly, deleteAnkor);
+
+//Kategori Ankor
+router.get("/kategoriankor", verifyToken, superOnly, getKategoriAnkorAdmin);
+router.post("/ckategoriankor", verifyToken, superOnly, createKategoriAnkor);
+router.patch("/kategoriankor/:id", verifyToken, superOnly, updateKategoriAnkor);
+router.delete(
+  "/kategoriankor/:id",
+  verifyToken,
+  superOnly,
+  deleteKategoriAnkor
+);
 
 //pengunjung
 router.get("/produk_hukump", getProdukHukumPengunjung);

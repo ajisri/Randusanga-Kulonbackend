@@ -420,7 +420,6 @@ export const createAnkor = [
     const createdById = req.administratorId;
 
     try {
-      console.log("Memeriksa apakah Ankor sudah ada...");
       const existingAnkor = await prisma.ankor.findFirst({
         where: { name },
       });
@@ -431,12 +430,10 @@ export const createAnkor = [
         });
       }
 
-      console.log("Membuat Ankor baru...");
       const newAnkor = await prisma.ankor.create({
         data: { name, createdById },
       });
 
-      console.log("Parameter Ankor berhasil dibuat:", newAnkor);
       return res.status(201).json({
         msg: "Parameter Ankor dibuat dengan sukses",
         ankor: newAnkor,
@@ -546,6 +543,160 @@ export const deleteAnkor = [
     } catch (error) {
       console.error("Error saat menghapus Parameter Ankor:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    }
+  },
+];
+
+//KATEGORI ANKOR
+export const getKategoriAnkorAdmin = [
+  verifyAdmin,
+  async (req, res) => {
+    try {
+      const kategoriankors = await prisma.kategoriankor.findMany();
+      res.status(200).json(kategoriankor);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      res.status(500).json({ msg: "Server error occurred" });
+    }
+  },
+];
+
+export const createKategoriAnkor = [
+  verifyAdmin, // Middleware untuk verifikasi admin
+  body("name").notEmpty().withMessage("Name is required"),
+  body("ankorId").isInt().withMessage("Ankor must be a valid integer"),
+  async (req, res) => {
+    handleValidationErrors(req, res);
+
+    const { name, ankorId } = req.body; // Mengambil nama dan ankorId dari body request
+    const createdById = req.administratorId; // ID administrator yang membuat entri
+
+    try {
+      const ankor = await prisma.ankor.findUnique({
+        where: { id: ankorId },
+      });
+
+      if (!ankor) {
+        return res.status(404).json({ msg: "ankor not found" });
+      }
+
+      const existingKategoriankor = await prisma.kategoriankor.findFirst({
+        where: { name, ankorId },
+      });
+
+      if (existingKategoriankor) {
+        return res.status(400).json({
+          msg: "Parameter Ankor sudah ada, tidak bisa membuat data baru",
+        });
+      }
+
+      // Membuat entri
+      const kategoriankor = await prisma.kategoriankor.create({
+        data: {
+          name,
+          ankorId, // Menghubungkan kategori dengan ankor yang dipilih
+          createdById,
+        },
+        include: {
+          ankor: true, // Menyertakan informasi Paramter ankor dalam respons
+        },
+      });
+
+      res.status(201).json(kategoriankor);
+    } catch (error) {
+      console.error("Error creating Kategori Ankor:", error);
+      res.status(500).json({ msg: "Server error occurred" });
+    }
+  },
+];
+
+export const updateKategoriAnkor = [
+  verifyAdmin, // Middleware untuk verifikasi admin
+  body("name").optional().notEmpty().withMessage("Name cannot be empty"),
+  body("ankorId")
+    .optional()
+    .isInt()
+    .withMessage("Ankor ID must be a valid integer"),
+  async (req, res) => {
+    handleValidationErrors(req, res);
+
+    const { uuid } = req.params; // Mengambil UUID dari parameter
+    const { name, ankorId } = req.body; // Mengambil kolom yang akan diupdate dari body request
+    const createdById = req.administratorId;
+    try {
+      // Validasi keberadaan keuangan berdasarkan UUID
+      const existingKategoriankor = await prisma.kategoriankor.findUnique({
+        where: { uuid },
+      });
+
+      if (!existingKategoriankor) {
+        return res.status(404).json({ msg: "Kategori Parameter not found" });
+      }
+
+      // Jika `Id` disediakan, validasi bahwa ID tersebut valid
+      if (ankorId) {
+        const ankor = await prisma.ankor.findUnique({
+          where: { id: ankorId },
+        });
+
+        if (!ankor) {
+          return res.status(404).json({ msg: "Parameter Ankor not found" });
+        }
+      }
+
+      // Update keuangan dengan data baru
+      const updatedKategoriankor = await prisma.keuangan.update({
+        where: { uuid },
+        data: {
+          name,
+          ankorId,
+          createdById,
+          updated_at: new Date(), // Otomatis mengisi waktu update
+        },
+      });
+
+      return res.status(200).json({
+        msg: "Kategoriankor updated successfully",
+        data: updatedKategoriankor,
+      });
+    } catch (error) {
+      console.error("Error updating Data:", error);
+      res.status(500).json({ msg: "Server error occurred" });
+    }
+  },
+];
+
+export const deleteKategoriAnkor = [
+  verifyAdmin,
+  async (req, res) => {
+    const { uuid } = req.params;
+
+    try {
+      // Cek keberadaan Kategoriankor berdasarkan UUID
+      const existingKategoriankor = await prisma.kategoriankor.findUnique({
+        where: { uuid },
+      });
+
+      if (!existingKategoriankor) {
+        return res.status(404).json({ msg: "Kategoriankor not found" });
+      }
+
+      // Hapus Kategoriankor
+      await prisma.kategoriankor.delete({
+        where: { uuid },
+      });
+
+      // Kirim respon sukses
+      return res
+        .status(200)
+        .json({ msg: "Kategoriankor deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting Kategoriankor:", error);
+
+      // Kirim respon error
+      return res
+        .status(500)
+        .json({ msg: "An unexpected server error occurred" });
     }
   },
 ];
@@ -933,7 +1084,6 @@ export const createKeuangan = [
   },
 ];
 
-// Fungsi lainnya mengikuti pola yang sama
 export const getAllKeuangan = [
   verifyAdmin,
   async (req, res) => {
