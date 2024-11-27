@@ -527,6 +527,38 @@ export const updateAnkor = [
   },
 ];
 
+export const deleteAnkor = [
+  verifyAdmin, // Middleware untuk verifikasi admin
+  async (req, res) => {
+    const { id } = req.params;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const existingAnkor = await prisma.ankor.findUnique({
+        where: { id: parseInt(id, 10) },
+      });
+
+      if (!existingAnkor) {
+        return res.status(404).json({ msg: "Data tidak ditemukan" });
+      }
+
+      await prisma.ankor.delete({
+        where: { id: parseInt(id, 10) },
+      });
+
+      return res
+        .status(200)
+        .json({ msg: "Parameter Ankor dihapus dengan sukses" });
+    } catch (error) {
+      console.error("Error saat menghapus Parameter Ankor:", error);
+      res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    }
+  },
+];
+
 //APBD
 export const getApbdPengunjung = async (req, res) => {
   try {
@@ -834,23 +866,36 @@ export const deleteApbd = [
     }
 
     try {
-      const existingAnkor = await prisma.ankor.findUnique({
+      // Cek apakah data APBD ada
+      const existingApbd = await prisma.apbd.findUnique({
         where: { id: parseInt(id, 10) },
       });
 
-      if (!existingAnkor) {
-        return res.status(404).json({ msg: "Data tidak ditemukan" });
+      if (!existingApbd) {
+        return res.status(404).json({ msg: "APBD tidak ditemukan" });
       }
 
-      await prisma.ankor.delete({
+      // Hapus file jika ada
+      const filePathToDelete = path.join(
+        __dirname,
+        "..",
+        "uploads/apbd",
+        path.basename(existingApbd.file_url)
+      );
+
+      if (fs.existsSync(filePathToDelete)) {
+        fs.unlinkSync(filePathToDelete);
+        console.log(`Successfully deleted file: ${filePathToDelete}`);
+      }
+
+      // Hapus data APBD dari database
+      await prisma.apbd.delete({
         where: { id: parseInt(id, 10) },
       });
 
-      return res
-        .status(200)
-        .json({ msg: "Parameter Ankor dihapus dengan sukses" });
+      return res.status(200).json({ msg: "APBD dihapus dengan sukses" });
     } catch (error) {
-      console.error("Error saat menghapus Parameter Ankor:", error);
+      console.error("Error saat menghapus APBD:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
     }
   },
@@ -897,6 +942,7 @@ export const createKeuangan = [
   },
 ];
 
+// Fungsi lainnya mengikuti pola yang sama
 export const getAllKeuangan = [
   verifyAdmin,
   async (req, res) => {
