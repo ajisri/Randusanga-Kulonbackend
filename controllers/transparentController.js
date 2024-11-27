@@ -409,11 +409,11 @@ export const getAnkorAdmin = [
 
 export const createAnkor = [
   verifyAdmin, // Middleware untuk verifikasi admin
-
   // Validasi input
   body("name").notEmpty().withMessage("Name is required"),
 
   async (req, res) => {
+    console.log("Body yang diterima:", req.body);
     // Menangani validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
