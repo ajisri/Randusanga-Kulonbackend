@@ -31,7 +31,6 @@ export const getProdukHukumPengunjung = async (req, res) => {
     // Kirimkan data produk hukum
     res.status(200).json({ produkHukump });
   } catch (error) {
-    console.error("Error saat mengambil data produk hukum untuk admin:", error);
     res.status(500).json({ msg: "Terjadi kesalahan pada server" });
   }
 };
@@ -95,7 +94,6 @@ export const getProdukHukumAdmin = async (req, res) => {
     // Kirimkan data produk hukum
     res.status(200).json({ produkHukum });
   } catch (error) {
-    console.error("Error saat mengambil data produk hukum untuk admin:", error);
     res.status(500).json({ msg: "Terjadi kesalahan pada server" });
   }
 };
@@ -168,7 +166,6 @@ export const createProdukHukum = async (req, res) => {
       produkHukum: newProdukHukum,
     });
   } catch (error) {
-    console.error("Error saat membuat produk hukum:", error);
     return res.status(500).json({
       msg: "Terjadi kesalahan pada server",
     });
@@ -260,7 +257,6 @@ export const updateProdukHukum = async (req, res) => {
       produkHukum: updatedProdukHukum,
     });
   } catch (error) {
-    console.error("Error saat memperbarui produk hukum:", error);
     res.status(500).json({ msg: "Terjadi kesalahan pada server" });
   }
 };
@@ -316,7 +312,6 @@ export const deleteProdukHukum = async (req, res) => {
 
     return res.status(200).json({ msg: "Produk hukum dihapus dengan sukses" });
   } catch (error) {
-    console.error("Error saat menghapus produk hukum:", error);
     res.status(500).json({ msg: "Terjadi kesalahan pada server" });
   }
 };
@@ -331,26 +326,15 @@ const handleValidationErrors = (req, res) => {
 
 // Middleware to check refresh token and administrator role
 const verifyAdmin = async (req, res, next) => {
-  // Log awal untuk memulai proses verifikasi admin
-  console.log("Memulai verifikasi admin...");
-
   // Mendapatkan refresh token dari cookies
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
-    // Jika token tidak ditemukan, log peringatan dan kembalikan respons 401
-    console.warn("Token tidak ditemukan di cookies.");
     return res.status(401).json({ msg: "Token tidak ditemukan" });
   }
 
   try {
-    // Log bahwa token ditemukan dan sedang diverifikasi
-    console.log("Token ditemukan. Memverifikasi token...");
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-    // Log bahwa token berhasil diverifikasi
-    console.log("Token berhasil diverifikasi:", decoded);
-
     // Mencari administrator berdasarkan ID yang didekode dari token
     const administrator = await prisma.administrator.findUnique({
       where: { id: decoded.administratorId },
@@ -358,22 +342,11 @@ const verifyAdmin = async (req, res, next) => {
 
     // Jika administrator tidak ditemukan atau tidak memiliki peran administrator, log peringatan dan kembalikan respons 403
     if (!administrator || administrator.role !== "administrator") {
-      console.warn(
-        "Administrator tidak valid atau tidak memiliki akses:",
-        administrator
-      );
       return res.status(403).json({ msg: "Akses ditolak" });
     }
-
-    // Log bahwa administrator terverifikasi
-    console.log("Administrator terverifikasi:", administrator);
-
-    // Simpan UUID administrator ke dalam request untuk digunakan di handler berikutnya
     req.administratorId = administrator.uuid;
     next();
   } catch (error) {
-    // Log jika terjadi kesalahan saat verifikasi token
-    console.error("Error verifying token:", error.message);
     return res.status(403).json({ msg: "Token tidak valid" });
   }
 };
@@ -401,7 +374,6 @@ export const getAnkorAdmin = [
 
       res.status(200).json({ ankor });
     } catch (error) {
-      console.error("Error saat mengambil data ankor untuk admin:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
     }
   },
@@ -439,7 +411,6 @@ export const createAnkor = [
         ankor: newAnkor,
       });
     } catch (error) {
-      console.error("Terjadi kesalahan saat membuat Ankor:", error.message);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
@@ -541,7 +512,6 @@ export const deleteAnkor = [
         .status(200)
         .json({ msg: "Parameter Ankor dihapus dengan sukses" });
     } catch (error) {
-      console.error("Error saat menghapus Parameter Ankor:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server" });
     }
   },
@@ -555,7 +525,6 @@ export const getKategoriAnkorAdmin = [
       const kategoriankors = await prisma.kategoriankor.findMany();
       res.status(200).json(kategoriankors);
     } catch (error) {
-      console.error("Error fetching data:", error);
       res.status(500).json({ msg: "Server error occurred" });
     }
   },
@@ -604,7 +573,6 @@ export const createKategoriAnkor = [
 
       res.status(201).json(kategoriankor);
     } catch (error) {
-      console.error("Error creating Kategori Ankor:", error);
       res.status(500).json({ msg: "Server error occurred" });
     }
   },
@@ -660,7 +628,6 @@ export const updateKategoriAnkor = [
         data: updatedKategoriankor,
       });
     } catch (error) {
-      console.error("Error updating Data:", error);
       res.status(500).json({ msg: "Server error occurred" });
     }
   },
@@ -691,8 +658,6 @@ export const deleteKategoriAnkor = [
         .status(200)
         .json({ msg: "Kategoriankor deleted successfully" });
     } catch (error) {
-      console.error("Error deleting Kategoriankor:", error);
-
       // Kirim respon error
       return res
         .status(500)

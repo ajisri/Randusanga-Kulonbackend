@@ -58,9 +58,14 @@ router.delete("/ankor/:id", verifyToken, superOnly, deleteAnkor);
 //Kategori Ankor
 router.get("/kategoriankor", verifyToken, superOnly, getKategoriAnkorAdmin);
 router.post("/ckategoriankor", verifyToken, superOnly, createKategoriAnkor);
-router.patch("/kategoriankor/:id", verifyToken, superOnly, updateKategoriAnkor);
+router.patch(
+  "/kategoriankor/:uuid",
+  verifyToken,
+  superOnly,
+  updateKategoriAnkor
+);
 router.delete(
-  "/kategoriankor/:id",
+  "/kategoriankor/:uuid",
   verifyToken,
   superOnly,
   deleteKategoriAnkor
