@@ -692,7 +692,7 @@ export const getSubkategoriAnkorByKategoriAnkorId = [
 
       res.status(200).json(subkategoriankors);
     } catch (error) {
-      console.error("Error fetching Subkategori:", error);
+      console.error("Error fetching Subkategoriankor:", error);
       res.status(500).json({ msg: "Terjadi kesalahan pada server." });
     }
   },
