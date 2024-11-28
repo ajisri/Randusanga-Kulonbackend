@@ -700,7 +700,6 @@ export const getSubkategoriAnkorByKategoriAnkorId = [
 
 export const createSubkategoriAnkor = [
   verifyAdmin,
-
   // Validasi input menggunakan express-validator
   check("subkategoriAnkorData")
     .isArray({ min: 1 })
@@ -719,56 +718,60 @@ export const createSubkategoriAnkor = [
 
   async (req, res) => {
     console.log("=== DEBUG: Request Payload ===");
-    console.log(JSON.stringify(req.body, null, 2));
+    console.log(JSON.stringify(req.body, null, 2)); // Log payload yang diterima
 
-    // Validasi input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error("=== DEBUG: Validasi Gagal ===");
-      console.error(errors.array());
+      console.error("=== DEBUG: Validation Errors ===", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const createdById = req.administratorId;
     const subkategoriAnkorData = req.body.subkategoriAnkorData;
 
-    // Debug tambahan
-    console.log("=== DEBUG: Administrator ID ===", createdById);
-    console.log("=== DEBUG: SubkategoriAnkorData ===", subkategoriAnkorData);
-
-    const kategoriankorId = subkategoriAnkorData[0].kategoriankorId;
-
     try {
+      // Validasi awal data
+      if (
+        !Array.isArray(subkategoriAnkorData) ||
+        subkategoriAnkorData.length === 0
+      ) {
+        throw new Error("subkategoriAnkorData harus berupa array yang valid.");
+      }
+
+      const kategoriankorId = subkategoriAnkorData[0]?.kategoriankorId;
+
+      if (!kategoriankorId) {
+        throw new Error("kategoriankorId harus diisi dan valid.");
+      }
+
+      console.log("=== DEBUG: kategoriankorId ===", kategoriankorId);
+
+      // Transaksi Prisma
       const result = await prisma.$transaction(async (prisma) => {
         const createdSubkategoriAnkors = [];
         const uuidsToKeep = new Set();
 
-        // Debug: Fetch existing data
-        console.log("=== DEBUG: Fetching existing SubkategoriAnkor ===");
+        // Ambil data subkategoriAnkor yang sudah ada
         const existingSubkategoriAnkors =
           await prisma.subkategoriankor.findMany({
             where: { kategoriankorId },
           });
+        console.log(
+          "=== DEBUG: Existing SubkategoriAnkor Data ===",
+          existingSubkategoriAnkors
+        );
+
         const existingUuids = new Set(
           existingSubkategoriAnkors.map((s) => s.uuid)
         );
 
-        console.log("=== DEBUG: Existing SubkategoriAnkor ===");
-        console.log(existingSubkategoriAnkors);
-
         for (const subkategoriAnkor of subkategoriAnkorData) {
           const { uuid, name, url } = subkategoriAnkor;
-          console.log("=== DEBUG: Processing SubkategoriAnkor ===", {
-            uuid,
-            name,
-            url,
-          });
-
           let createdSubkategoriAnkor;
 
           if (uuid) {
-            // Debug: Update case
-            console.log("=== DEBUG: Update SubkategoriAnkor ===");
+            // Update data jika UUID ada
+            console.log("=== DEBUG: Updating SubkategoriAnkor ===", uuid);
             const existingSubkategoriAnkor = existingSubkategoriAnkors.find(
               (s) => s.uuid === uuid
             );
@@ -789,12 +792,11 @@ export const createSubkategoriAnkor = [
               );
             }
           } else {
-            // Debug: Create case
-            console.log("=== DEBUG: Create New SubkategoriAnkor ===");
-            const count = await prisma.subkategoriankor.count({
-              where: { kategoriankorId },
+            // Tambahkan data baru jika UUID tidak ada
+            console.log("=== DEBUG: Creating New SubkategoriAnkor ===", {
+              name,
+              url,
             });
-
             createdSubkategoriAnkor = await prisma.subkategoriankor.create({
               data: {
                 name,
@@ -805,22 +807,16 @@ export const createSubkategoriAnkor = [
             });
           }
 
-          // Debug: Success
-          console.log("=== DEBUG: SubkategoriAnkor Created/Updated ===");
-          console.log(createdSubkategoriAnkor);
-
           createdSubkategoriAnkors.push(createdSubkategoriAnkor);
         }
 
-        // Debug: Deletion case
-        console.log("=== DEBUG: Check UUIDs to Delete ===");
+        // Hapus data yang tidak ada di input terbaru
         const uuidsToDelete = [...existingUuids].filter(
           (uuid) => !uuidsToKeep.has(uuid)
         );
         console.log("=== DEBUG: UUIDs to Delete ===", uuidsToDelete);
 
         if (uuidsToDelete.length > 0) {
-          console.log("=== DEBUG: Deleting SubkategoriAnkor ===");
           await prisma.subkategoriankor.deleteMany({
             where: {
               uuid: { in: uuidsToDelete },
@@ -831,9 +827,7 @@ export const createSubkategoriAnkor = [
         return { createdSubkategoriAnkors };
       });
 
-      // Debug: Final Result
-      console.log("=== DEBUG: Transaction Success ===");
-      console.log(result);
+      console.log("=== DEBUG: SubkategoriAnkor Transaction Result ===", result);
 
       return res.status(200).json({
         message: "SubkategoriAnkor berhasil diatur",
@@ -842,9 +836,13 @@ export const createSubkategoriAnkor = [
       });
     } catch (error) {
       console.error("=== DEBUG: Error managing SubkategoriAnkor ===");
-      console.error(error);
+      console.error(error.message);
+      console.error(error.stack);
 
-      return res.status(500).json({ msg: "Terjadi kesalahan pada server." });
+      return res.status(500).json({
+        msg: "Terjadi kesalahan pada server.",
+        detail: error.message, // Kirim detail error ke frontend
+      });
     }
   },
 ];
