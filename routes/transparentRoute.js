@@ -10,6 +10,8 @@ import {
   createProdukHukum,
   updateProdukHukum,
   deleteProdukHukum,
+  getSubkategoriAnkorByKategoriAnkorId,
+  createSubkategoriAnkor,
   getKategoriAnkorAdmin,
   createKategoriAnkor,
   updateKategoriAnkor,
@@ -71,7 +73,21 @@ router.delete(
   deleteKategoriAnkor
 );
 
-//pengunjung
+//subkategori ankor
+router.get(
+  "/subkategoriankorbykategoriankor/:kategoriankorId",
+  verifyToken,
+  superOnly,
+  getSubkategoriAnkorByKategoriAnkorId
+);
+router.post(
+  "/csubkategoriankor",
+  verifyToken,
+  superOnly,
+  createSubkategoriAnkor
+);
+
+//pengunjung produk hukum
 router.get("/produk_hukump", getProdukHukumPengunjung);
 router.get("/download/:filename", downloadFile);
 
