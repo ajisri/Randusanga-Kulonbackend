@@ -776,7 +776,6 @@ export const createSubkategoriAnkor = [
               data: {
                 name,
                 url,
-                number,
                 kategoriankorId,
                 createdById,
               },
