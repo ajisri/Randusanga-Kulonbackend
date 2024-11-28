@@ -429,6 +429,6 @@ model Subkategoriankor {
   updated_at   DateTime    @updatedAt
   createdById  String
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
-  kategoriankorId       Int
-  kategoriankor         Kategoriankor        @relation(fields: [kategoriankorId], references: [id], onDelete: Cascade)
+  kategoriankorId       String
+  kategoriankor         Kategoriankor        @relation(fields: [kategoriankorId], references: [uuid], onDelete: Cascade)
 }
