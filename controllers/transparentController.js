@@ -717,6 +717,9 @@ export const createSubkategoriAnkor = [
     .withMessage("KategoriAnkorId harus merupakan UUID yang valid"),
 
   async (req, res) => {
+    console.log("=== DEBUG: Request Payload ===");
+    console.log(req.body);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -770,7 +773,6 @@ export const createSubkategoriAnkor = [
             const count = await prisma.subkategoriankor.count({
               where: { kategoriankorId },
             });
-            const number = (count + 1).toString();
 
             createdSubkategoriAnkor = await prisma.subkategoriankor.create({
               data: {
