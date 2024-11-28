@@ -715,12 +715,6 @@ export const createSubkategoriAnkor = [
     .isUUID()
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
 
-  // Jika UUID kosong dan hanya untuk create (bukan update), jangan lakukan validasi
-  check("subkategoriAnkorData.*.uuid")
-    .optional()
-    .isUUID()
-    .withMessage("UUID harus valid jika ada"),
-
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
