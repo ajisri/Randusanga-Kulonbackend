@@ -700,7 +700,6 @@ export const getSubkategoriAnkorByKategoriAnkorId = [
 
 export const createSubkategoriAnkor = [
   verifyAdmin,
-  // Validasi input menggunakan express-validator
   check("subkategoriAnkorData")
     .isArray({ min: 1 })
     .withMessage(
@@ -715,6 +714,12 @@ export const createSubkategoriAnkor = [
   check("subkategoriAnkorData.*.kategoriankorId")
     .isUUID()
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
+
+  // Jika UUID kosong dan hanya untuk create (bukan update), jangan lakukan validasi
+  check("subkategoriAnkorData.*.uuid")
+    .optional()
+    .isUUID()
+    .withMessage("UUID harus valid jika ada"),
 
   async (req, res) => {
     const errors = validationResult(req);
