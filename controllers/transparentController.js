@@ -787,7 +787,6 @@ export const createSubkategoriAnkor = [
                 data: {
                   name,
                   url,
-                  updatedById: administratorId,
                   updated_at: new Date(),
                 },
               });
