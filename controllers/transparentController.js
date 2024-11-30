@@ -352,6 +352,42 @@ const verifyAdmin = async (req, res, next) => {
 };
 
 //ANKOR
+export const getAllDataAnkor = [
+  async (req, res) => {
+    try {
+      const dataAnkor = await prisma.ankor.findMany({
+        include: {
+          createdBy: {
+            select: {
+              uuid: true, // Ambil hanya UUID atau tambahkan field lain sesuai kebutuhan
+              name: true,
+            },
+          },
+          kategoriankor: {
+            include: {
+              subkategoriankor: {
+                select: {
+                  uuid: true,
+                  name: true,
+                  url: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Data Ankor berhasil diambil.",
+        data: dataAnkor,
+      });
+    } catch (error) {
+      res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    }
+  },
+];
+
 export const getAnkorAdmin = [
   verifyAdmin,
   async (req, res) => {
