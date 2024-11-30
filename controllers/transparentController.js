@@ -383,7 +383,11 @@ export const getAllDataAnkor = [
         data: dataAnkor,
       });
     } catch (error) {
-      res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+      res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan pada server",
+        error: error.message, // Tambahkan informasi error
+      });
     }
   },
 ];

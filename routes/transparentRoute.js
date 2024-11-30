@@ -16,6 +16,7 @@ import {
   createKategoriAnkor,
   updateKategoriAnkor,
   deleteKategoriAnkor,
+  getAllDataAnkor,
   getAnkorAdmin,
   createAnkor,
   updateAnkor,
@@ -52,6 +53,7 @@ import { verifyToken, superOnly } from "../middleware/verifyToken.js";
 const router = express.Router();
 
 //Ankor
+router.get("/ankorp", getAllDataAnkor);
 router.get("/ankor", verifyToken, superOnly, getAnkorAdmin);
 router.post("/cankor", verifyToken, superOnly, createAnkor);
 router.patch("/ankor/:id", verifyToken, superOnly, updateAnkor);
