@@ -968,10 +968,6 @@ export const deleteSubkategoriAnkor = [
 export const createPoinsubkategoriankor = [
   // Middleware untuk memastikan pengguna adalah admin
   verifyAdmin,
-
-  // Validasi input menggunakan express-validator
-  check("url").isURL().withMessage("URL harus berupa URL yang valid"), // Validasi URL yang wajib
-
   check("subkategoriankorId")
     .isUUID()
     .withMessage("subkategoriankorId harus merupakan UUID yang valid"), // Validasi subkategoriankorId yang wajib
