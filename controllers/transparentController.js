@@ -767,66 +767,85 @@ export const createSubkategoriAnkor = [
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
 
   async (req, res) => {
-    console.log(
-      "=== DEBUG: Request Payload ===",
-      JSON.stringify(req.body, null, 2)
-    );
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error("=== DEBUG: Validation Errors ===", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { administratorId } = req; // Dapatkan administratorId dari middleware
-    const { name, url, kategoriankorId } = req.body; // Dapatkan data dari body request
+    const createdById = req.administratorId; // Administrator ID dari middleware
+    const { name, kategoriankorId, poinsubkategoriankor } = req.body; // Data dari body request
+    const subkategoriankorUuid = req.params.uuid; // UUID untuk edit
 
     try {
-      // Validasi kategoriankorId
-      if (!kategoriankorId) {
-        return res.status(400).json({
-          msg: "kategoriankorId harus diisi dan valid.",
+      const result = await prisma.$transaction(async (prisma) => {
+        // **UPDATE or CREATE Subkategoriankor**
+        let subkategoriankor;
+        if (subkategoriankorUuid) {
+          // Edit mode
+          subkategoriankor = await prisma.subkategoriankor.update({
+            where: { uuid: subkategoriankorUuid },
+            data: { name, kategoriankorId },
+          });
+        } else {
+          // Add mode
+          subkategoriankor = await prisma.subkategoriankor.create({
+            data: { name, kategoriankorId, createdById },
+          });
+        }
+
+        const subkategoriankorId = subkategoriankor.uuid;
+
+        // **Manage Poinsubkategoriankor (Add, Update, Delete)**
+        const existingPoins = await prisma.poinsubkategoriankor.findMany({
+          where: { subkategoriankorId },
         });
-      }
+        const existingIds = new Set(existingPoins.map((p) => p.id));
 
-      // Cek apakah kategoriankorId ada dalam database
-      const kategoriankorExists = await prisma.kategoriankor.findUnique({
-        where: { uuid: kategoriankorId },
+        const uuidsToKeep = new Set();
+        for (const poin of poinsubkategoriankor) {
+          if (poin.id) {
+            // Update poin jika ID ada
+            const existingPoin = existingPoins.find((p) => p.id === poin.id);
+            if (existingPoin) {
+              await prisma.poinsubkategoriankor.update({
+                where: { id: poin.id },
+                data: { name: poin.name },
+              });
+              uuidsToKeep.add(poin.id);
+            } else {
+              throw new Error(
+                "Poin Subkategoriankor tidak ditemukan untuk update"
+              );
+            }
+          } else {
+            // Tambah poin baru jika ID tidak ada
+            const createdPoin = await prisma.poinsubkategoriankor.create({
+              data: { name: poin.name, subkategoriankorId },
+            });
+            uuidsToKeep.add(createdPoin.id);
+          }
+        }
+
+        // Hapus poin yang tidak ada dalam data terbaru
+        const idsToDelete = [...existingIds].filter(
+          (id) => !uuidsToKeep.has(id)
+        );
+        if (idsToDelete.length > 0) {
+          await prisma.poinsubkategoriankor.deleteMany({
+            where: { id: { in: idsToDelete } },
+          });
+        }
+
+        return { subkategoriankor, poinsubkategoriankor: [...uuidsToKeep] };
       });
-
-      if (!kategoriankorExists) {
-        return res.status(400).json({
-          msg: "Kategoriankor tidak ditemukan.",
-        });
-      }
-
-      // Buat data baru
-      const createdSubkategoriAnkor = await prisma.subkategoriankor.create({
-        data: {
-          name,
-          url,
-          kategoriankorId,
-          createdById: administratorId, // Menyimpan ID admin yang membuat
-        },
-      });
-
-      console.log(
-        "=== DEBUG: SubkategoriAnkor Created ===",
-        createdSubkategoriAnkor
-      );
 
       return res.status(200).json({
-        message: "SubkategoriAnkor berhasil dibuat",
-        data: createdSubkategoriAnkor,
+        message: "Data SubkategoriAnkor berhasil diatur",
+        data: result,
       });
     } catch (error) {
-      console.error("=== DEBUG: Error managing SubkategoriAnkor ===");
-      console.error(error);
-
-      return res.status(500).json({
-        msg: "Terjadi kesalahan pada server.",
-        detail: error.message,
-      });
+      console.error("Error managing SubkategoriAnkor:", error);
+      return res.status(500).json({ msg: "Terjadi kesalahan pada server." });
     }
   },
 ];
