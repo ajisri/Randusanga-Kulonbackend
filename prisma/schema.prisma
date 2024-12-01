@@ -432,7 +432,7 @@ model Subkategoriankor {
   kategoriankorId       String
   kategoriankor         Kategoriankor        @relation(fields: [kategoriankorId], references: [uuid], onDelete: Cascade)
 
-  Poinsubkategoriankor Poinsubkategoriankor[]
+  poinsubkategoriankor Poinsubkategoriankor[]
 }
 
 model Poinsubkategoriankor {
