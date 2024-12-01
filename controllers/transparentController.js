@@ -652,8 +652,8 @@ export const updateKategoriAnkor = [
         }
       }
 
-      // Update keuangan dengan data baru
-      const updatedKategoriankor = await prisma.keuangan.update({
+      // Update dengan data baru
+      const updatedKategoriankor = await prisma.kategoriankor.update({
         where: { uuid },
         data: {
           name,
