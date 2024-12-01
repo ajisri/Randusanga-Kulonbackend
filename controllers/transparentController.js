@@ -762,10 +762,6 @@ export const createSubkategoriAnkor = [
 
   // Validasi input menggunakan express-validator
   check("name").notEmpty().withMessage("Nama subkategori harus diisi"),
-  check("url")
-    .optional()
-    .isURL()
-    .withMessage("URL harus berupa URL yang valid"),
   check("kategoriankorId")
     .isUUID()
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
