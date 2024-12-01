@@ -100,13 +100,13 @@ router.post(
 );
 
 router.patch(
-  "/subkategoriankor/:id",
+  "/subkategoriankor/:uuid",
   verifyToken,
   superOnly,
   updateSubkategoriAnkor
 );
 router.delete(
-  "/subkategoriankor/:id",
+  "/subkategoriankor/:uuid",
   verifyToken,
   superOnly,
   deleteSubkategoriAnkor
