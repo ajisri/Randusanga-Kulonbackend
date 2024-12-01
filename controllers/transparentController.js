@@ -844,8 +844,11 @@ export const createSubkategoriAnkor = [
         data: result,
       });
     } catch (error) {
-      console.error("Error managing SubkategoriAnkor:", error);
-      return res.status(500).json({ msg: "Terjadi kesalahan pada server." });
+      console.error("Error managing SubkategoriAnkor:", error); // Menampilkan error di console
+      return res.status(500).json({
+        msg: "Terjadi kesalahan pada server.",
+        error: error.message, // Menampilkan pesan error lebih spesifik
+      });
     }
   },
 ];
