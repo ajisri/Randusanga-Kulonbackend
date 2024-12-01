@@ -795,7 +795,7 @@ export const createSubkategoriAnkor = [
 
       // Cek apakah kategoriankorId ada dalam database
       const kategoriankorExists = await prisma.kategoriankor.findUnique({
-        where: { id: kategoriankorId },
+        where: { uuid: kategoriankorId },
       });
 
       if (!kategoriankorExists) {
