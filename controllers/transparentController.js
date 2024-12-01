@@ -781,13 +781,13 @@ export const createSubkategoriAnkor = [
         // **UPDATE or CREATE Subkategoriankor**
         let subkategoriankor;
         if (subkategoriankorUuid) {
-          // Edit mode
+          // Edit mode: Update SubkategoriAnkor
           subkategoriankor = await prisma.subkategoriankor.update({
             where: { uuid: subkategoriankorUuid },
             data: { name, kategoriankorId },
           });
         } else {
-          // Add mode
+          // Add mode: Create new SubkategoriAnkor
           subkategoriankor = await prisma.subkategoriankor.create({
             data: { name, kategoriankorId, createdById },
           });
@@ -802,9 +802,11 @@ export const createSubkategoriAnkor = [
         const existingIds = new Set(existingPoins.map((p) => p.id));
 
         const uuidsToKeep = new Set();
+
+        // Looping through the poinsubkategoriankor array from the request
         for (const poin of poinsubkategoriankor) {
           if (poin.id) {
-            // Update poin jika ID ada
+            // Update poin if ID exists
             const existingPoin = existingPoins.find((p) => p.id === poin.id);
             if (existingPoin) {
               await prisma.poinsubkategoriankor.update({
@@ -813,12 +815,13 @@ export const createSubkategoriAnkor = [
               });
               uuidsToKeep.add(poin.id);
             } else {
+              // Throw error if poin not found for update
               throw new Error(
                 "Poin Subkategoriankor tidak ditemukan untuk update"
               );
             }
           } else {
-            // Tambah poin baru jika ID tidak ada
+            // Create a new poin if no ID exists
             const createdPoin = await prisma.poinsubkategoriankor.create({
               data: { name: poin.name, subkategoriankorId },
             });
@@ -826,7 +829,7 @@ export const createSubkategoriAnkor = [
           }
         }
 
-        // Hapus poin yang tidak ada dalam data terbaru
+        // **Delete Poinsubkategoriankor that are not in the request**
         const idsToDelete = [...existingIds].filter(
           (id) => !uuidsToKeep.has(id)
         );
@@ -836,9 +839,11 @@ export const createSubkategoriAnkor = [
           });
         }
 
+        // Returning the result containing subkategoriankor and the updated poinsubkategoriankor
         return { subkategoriankor, poinsubkategoriankor: [...uuidsToKeep] };
       });
 
+      // Return success response
       return res.status(200).json({
         message: "Data SubkategoriAnkor berhasil diatur",
         data: result,
