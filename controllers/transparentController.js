@@ -936,14 +936,13 @@ export const deleteSubkategoriAnkor = [
       "=== DEBUG: Request Payload ===",
       JSON.stringify(req.body, null, 2)
     );
+    const { uuid } = req.params;
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error("=== DEBUG: Validation Errors ===", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
-
-    const { uuid } = req.body; // Dapatkan UUID dari body request
 
     try {
       // Cek apakah subkategoriAnkor dengan UUID tersebut ada
