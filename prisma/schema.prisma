@@ -62,6 +62,7 @@ model Administrator {
   Ankor Ankor[]
   Kategoriankor Kategoriankor[]
   Subkategoriankor Subkategoriankor[]
+  Poinsubkategoriankor Poinsubkategoriankor[]
 }
 
 model User{
@@ -424,11 +425,24 @@ model Subkategoriankor {
   id           Int         @id @default(autoincrement())
   uuid         String      @default(uuid()) @unique
   name         String
-  url   String?
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
   createdById  String
   createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
   kategoriankorId       String
   kategoriankor         Kategoriankor        @relation(fields: [kategoriankorId], references: [uuid], onDelete: Cascade)
+
+  Poinsubkategoriankor Poinsubkategoriankor[]
+}
+
+model Poinsubkategoriankor {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @default(uuid()) @unique
+  name         String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  createdById  String
+  createdBy    Administrator? @relation(fields: [createdById], references: [uuid], onDelete: Cascade)
+  subkategoriankorId       String
+  subkategoriankor         Subkategoriankor        @relation(fields: [subkategoriankorId], references: [uuid], onDelete: Cascade)
 }
