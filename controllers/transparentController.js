@@ -743,10 +743,10 @@ export const getSubkategoriAnkorAdmin = [
   async (req, res) => {
     try {
       const subkategoriankors = await prisma.subkategoriankor.findMany();
+
+      // Mengirim array kosong jika tidak ada data
       if (!subkategoriankors || subkategoriankors.length === 0) {
-        return res
-          .status(404)
-          .json({ msg: "Data subkategori tidak ditemukan." });
+        return res.status(200).json([]); // Array kosong dengan status 200
       }
 
       res.status(200).json(subkategoriankors);
@@ -958,6 +958,83 @@ export const deleteSubkategoriAnkor = [
       });
     } catch (error) {
       console.error("=== DEBUG: Error managing SubkategoriAnkor ===");
+      console.error(error);
+
+      return res.status(500).json({
+        msg: "Terjadi kesalahan pada server.",
+        detail: error.message,
+      });
+    }
+  },
+];
+
+//Poin Subkategori
+export const createPoinsubkategoriankor = [
+  // Middleware untuk memastikan pengguna adalah admin
+  verifyAdmin,
+
+  // Validasi input menggunakan express-validator
+  check("url").isURL().withMessage("URL harus berupa URL yang valid"), // Validasi URL yang wajib
+
+  check("subkategoriankorId")
+    .isUUID()
+    .withMessage("subkategoriankorId harus merupakan UUID yang valid"), // Validasi subkategoriankorId yang wajib
+
+  async (req, res) => {
+    console.log(
+      "=== DEBUG: Request Payload ===",
+      JSON.stringify(req.body, null, 2)
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.error("=== DEBUG: Validation Errors ===", errors.array());
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { administratorId } = req; // Dapatkan administratorId dari middleware
+    const { url, subkategoriankorId } = req.body; // Dapatkan data dari body request
+
+    try {
+      // Validasi subkategoriankorId
+      if (!subkategoriankorId) {
+        return res.status(400).json({
+          msg: "subkategoriankorId harus diisi dan valid.",
+        });
+      }
+
+      // Cek apakah subkategoriankorId ada dalam database
+      const subkategoriankorExists = await prisma.subkategoriankor.findUnique({
+        where: { id: subkategoriankorId },
+      });
+
+      if (!subkategoriankorExists) {
+        return res.status(400).json({
+          msg: "Subkategoriankor tidak ditemukan.",
+        });
+      }
+
+      // Buat data Poinsubkategoriankor baru
+      const createdPoinsubkategoriankor =
+        await prisma.poinsubkategoriankor.create({
+          data: {
+            url, // URL dari body request
+            subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
+            createdById: administratorId, // Menyimpan ID admin yang membuat
+          },
+        });
+
+      console.log(
+        "=== DEBUG: Poinsubkategoriankor Created ===",
+        createdPoinsubkategoriankor
+      );
+
+      return res.status(200).json({
+        message: "Poinsubkategoriankor berhasil dibuat",
+        data: createdPoinsubkategoriankor,
+      });
+    } catch (error) {
+      console.error("=== DEBUG: Error managing Poinsubkategoriankor ===");
       console.error(error);
 
       return res.status(500).json({
