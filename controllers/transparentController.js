@@ -833,7 +833,10 @@ export const createSubkategoriAnkor = [
             console.log("Creating new poin:", poin);
             // Hanya mengirimkan subkategoriankorId tanpa relasi subkategoriankor
             const createdPoin = await prisma.poinsubkategoriankor.create({
-              data: { name: poin.name, subkategoriankorId: subkategoriankorId }, // Jangan sertakan subkategoriankor relasi
+              data: {
+                name: poin.name,
+                subkategoriankorId: poin.subkategoriankorId,
+              }, // Jangan sertakan subkategoriankor relasi
             });
             console.log("Created poin:", createdPoin);
             uuidsToKeep.add(createdPoin.id);
