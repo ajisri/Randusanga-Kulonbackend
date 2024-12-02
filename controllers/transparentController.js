@@ -759,13 +759,13 @@ export const getSubkategoriAnkorAdmin = [
 export const createSubkategoriAnkor = [
   verifyAdmin,
   // Validasi input menggunakan express-validator
-  check("subkategoriData")
+  check("subkategoriankorData")
     .isArray({ min: 1 })
     .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
-  check("subkategoriData.*.name")
+  check("subkategoriankorData.*.name")
     .notEmpty()
     .withMessage("Nama subkategori harus diisi"),
-  check("subkategoriData.*.kategoriankorId")
+  check("subkategoriankorData.*.kategoriankorId")
     .isUUID()
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
 
@@ -776,17 +776,18 @@ export const createSubkategoriAnkor = [
     }
 
     const createdById = req.administratorId;
-    const subkategoriData = req.body.subkategoriData;
+    const subkategoriankorData = req.body.subkategoriankorData;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
-        const createdSubkategoris = [];
+        const createdSubkategoriankors = [];
 
-        for (const subkategori of subkategoriData) {
-          const { name, kategoriankorId, poinsubkategoriankor } = subkategori;
+        for (const subkategoriankor of subkategoriankorData) {
+          const { name, kategoriankorId, poinsubkategoriankor } =
+            subkategoriankor;
 
           // Membuat Subkategoriankor
-          const createdSubkategori = await prisma.subkategoriankor.create({
+          const createdSubkategoriankor = await prisma.subkategoriankor.create({
             data: {
               name,
               kategoriankorId,
@@ -801,20 +802,20 @@ export const createSubkategoriAnkor = [
               const createdPoin = await prisma.poinsubkategoriankor.create({
                 data: {
                   name: poin.name,
-                  subkategoriankorId: createdSubkategori.uuid,
+                  subkategoriankorId: createdSubkategoriankor.uuid,
                 },
               });
               createdPoins.push(createdPoin);
             }
           }
 
-          createdSubkategoris.push({
-            subkategori: createdSubkategori,
+          createdSubkategoriankors.push({
+            subkategoriankor: createdSubkategoriankor,
             poins: createdPoins,
           });
         }
 
-        return createdSubkategoris;
+        return createdSubkategoriankors;
       });
 
       return res.status(200).json({
