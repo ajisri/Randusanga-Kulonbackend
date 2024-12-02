@@ -757,10 +757,7 @@ export const getSubkategoriAnkorAdmin = [
 ];
 
 export const createSubkategoriAnkor = [
-  // Middleware untuk memastikan pengguna adalah admin
   verifyAdmin,
-
-  // Validasi input menggunakan express-validator
   check("name").notEmpty().withMessage("Nama subkategori harus diisi"),
   check("kategoriankorId")
     .isUUID()
@@ -772,22 +769,23 @@ export const createSubkategoriAnkor = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const createdById = req.administratorId; // Administrator ID dari middleware
-    const { name, kategoriankorId, poinsubkategoriankor } = req.body; // Data dari body request
-    const subkategoriankorUuid = req.params.uuid; // UUID untuk edit
+    const createdById = req.administratorId;
+    const { name, kategoriankorId, poinsubkategoriankor } = req.body;
+    const subkategoriankorUuid = req.params.uuid;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
-        // **UPDATE or CREATE Subkategoriankor**
         let subkategoriankor;
+
+        // **CREATE atau UPDATE Subkategoriankor**
         if (subkategoriankorUuid) {
-          // Edit mode: Update SubkategoriAnkor
+          // Edit mode
           subkategoriankor = await prisma.subkategoriankor.update({
             where: { uuid: subkategoriankorUuid },
             data: { name, kategoriankorId },
           });
         } else {
-          // Add mode: Create new SubkategoriAnkor
+          // Add mode
           subkategoriankor = await prisma.subkategoriankor.create({
             data: { name, kategoriankorId, createdById },
           });
@@ -802,11 +800,9 @@ export const createSubkategoriAnkor = [
         const existingIds = new Set(existingPoins.map((p) => p.id));
 
         const uuidsToKeep = new Set();
-
-        // Looping through the poinsubkategoriankor array from the request
         for (const poin of poinsubkategoriankor) {
           if (poin.id) {
-            // Update poin if ID exists
+            // Update poin jika ID ada
             const existingPoin = existingPoins.find((p) => p.id === poin.id);
             if (existingPoin) {
               await prisma.poinsubkategoriankor.update({
@@ -815,13 +811,12 @@ export const createSubkategoriAnkor = [
               });
               uuidsToKeep.add(poin.id);
             } else {
-              // Throw error if poin not found for update
               throw new Error(
-                "Poin Subkategoriankor tidak ditemukan untuk update"
+                `Poin Subkategoriankor dengan ID ${poin.id} tidak ditemukan untuk update.`
               );
             }
           } else {
-            // Create a new poin if no ID exists
+            // Tambah poin baru jika ID tidak ada
             const createdPoin = await prisma.poinsubkategoriankor.create({
               data: { name: poin.name, subkategoriankorId },
             });
@@ -829,7 +824,7 @@ export const createSubkategoriAnkor = [
           }
         }
 
-        // **Delete Poinsubkategoriankor that are not in the request**
+        // **Hapus poin yang tidak ada dalam payload terbaru**
         const idsToDelete = [...existingIds].filter(
           (id) => !uuidsToKeep.has(id)
         );
@@ -839,20 +834,19 @@ export const createSubkategoriAnkor = [
           });
         }
 
-        // Returning the result containing subkategoriankor and the updated poinsubkategoriankor
         return { subkategoriankor, poinsubkategoriankor: [...uuidsToKeep] };
       });
 
-      // Return success response
+      // **Response sukses**
       return res.status(200).json({
         message: "Data SubkategoriAnkor berhasil diatur",
         data: result,
       });
     } catch (error) {
-      console.error("Error managing SubkategoriAnkor:", error); // Menampilkan error di console
+      console.error("Error managing SubkategoriAnkor:", error);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server.",
-        error: error.message, // Menampilkan pesan error lebih spesifik
+        error: error.message,
       });
     }
   },
