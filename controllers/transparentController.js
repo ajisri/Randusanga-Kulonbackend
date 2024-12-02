@@ -785,6 +785,7 @@ export const createSubkategoriAnkor = [
       const result = await prisma.$transaction(async (prisma) => {
         let subkategoriankor;
 
+        // Handle Create or Update SubkategoriAnkor
         if (subkategoriankorUuid) {
           console.log("Edit mode: Updating SubkategoriAnkor...");
           subkategoriankor = await prisma.subkategoriankor.update({
@@ -812,6 +813,7 @@ export const createSubkategoriAnkor = [
         const existingIds = new Set(existingPoins.map((p) => p.id));
         const uuidsToKeep = new Set();
 
+        // Handle poinsubkategoriankor creation or update
         for (const poin of poinsubkategoriankor) {
           if (poin.id) {
             console.log("Updating poin:", poin);
@@ -831,18 +833,18 @@ export const createSubkategoriAnkor = [
             }
           } else {
             console.log("Creating new poin:", poin);
-            // Hanya mengirimkan subkategoriankorId tanpa relasi subkategoriankor
             const createdPoin = await prisma.poinsubkategoriankor.create({
               data: {
                 name: poin.name,
-                subkategoriankorId: poin.subkategoriankorId,
-              }, // Jangan sertakan subkategoriankor relasi
+                subkategoriankorId, // This will correctly link to the SubkategoriAnkor
+              },
             });
             console.log("Created poin:", createdPoin);
             uuidsToKeep.add(createdPoin.id);
           }
         }
 
+        // Deleting old poins that are not part of the request
         const idsToDelete = [...existingIds].filter(
           (id) => !uuidsToKeep.has(id)
         );
