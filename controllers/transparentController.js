@@ -758,9 +758,9 @@ export const getSubkategoriAnkorAdmin = [
 
 export const createSubkategoriAnkor = [
   verifyAdmin,
-  check("subkategoriankorData")
-    .isArray({ min: 1 })
-    .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
+  // check("subkategoriankorData")
+  //   .isArray({ min: 1 })
+  //   .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
   check("subkategoriankorData.*.name")
     .notEmpty()
     .withMessage("Nama subkategori harus diisi"),
@@ -781,8 +781,7 @@ export const createSubkategoriAnkor = [
       const result = await prisma.$transaction(async (prisma) => {
         const createdSubkategoriankors = [];
         for (const subkategoriankor of subkategoriankorData) {
-          const { name, kategoriankorId, poinsubkategoriankor, uuid } =
-            subkategoriankor;
+          const { name, kategoriankorId, uuid } = subkategoriankor;
 
           if (uuid) {
             // Update subkategori yang ada berdasarkan UUID
@@ -796,26 +795,26 @@ export const createSubkategoriAnkor = [
                 },
               });
 
-            const updatedPoins = [];
-            if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
-              for (const poin of poinsubkategoriankor) {
-                const updatedPoin = await prisma.poinsubkategoriankor.upsert({
-                  where: {
-                    subkategoriankorId_name: {
-                      subkategoriankorId: uuid,
-                      name: poin.name,
-                    },
-                  },
-                  update: { name: poin.name },
-                  create: { name: poin.name, subkategoriankorId: uuid },
-                });
-                updatedPoins.push(updatedPoin);
-              }
-            }
+            // const updatedPoins = [];
+            // if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+            //   for (const poin of poinsubkategoriankor) {
+            //     const updatedPoin = await prisma.poinsubkategoriankor.upsert({
+            //       where: {
+            //         subkategoriankorId_name: {
+            //           subkategoriankorId: uuid,
+            //           name: poin.name,
+            //         },
+            //       },
+            //       update: { name: poin.name },
+            //       create: { name: poin.name, subkategoriankorId: uuid },
+            //     });
+            //     updatedPoins.push(updatedPoin);
+            //   }
+            // }
 
             createdSubkategoriankors.push({
               subkategoriankor: updatedSubkategoriankor,
-              poins: updatedPoins,
+              // poins: updatedPoins,
             });
           } else {
             // Jika uuid tidak ada, buat subkategori baru
@@ -828,22 +827,22 @@ export const createSubkategoriAnkor = [
                 },
               });
 
-            const createdPoins = [];
-            if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
-              for (const poin of poinsubkategoriankor) {
-                const createdPoin = await prisma.poinsubkategoriankor.create({
-                  data: {
-                    name: poin.name,
-                    subkategoriankorId: createdSubkategoriankor.uuid,
-                  },
-                });
-                createdPoins.push(createdPoin);
-              }
-            }
+            // const createdPoins = [];
+            // if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+            //   for (const poin of poinsubkategoriankor) {
+            //     const createdPoin = await prisma.poinsubkategoriankor.create({
+            //       data: {
+            //         name: poin.name,
+            //         subkategoriankorId: createdSubkategoriankor.uuid,
+            //       },
+            //     });
+            //     createdPoins.push(createdPoin);
+            //   }
+            // }
 
             createdSubkategoriankors.push({
               subkategoriankor: createdSubkategoriankor,
-              poins: createdPoins,
+              // poins: createdPoins,
             });
           }
         }
