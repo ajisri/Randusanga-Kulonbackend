@@ -971,7 +971,7 @@ export const createPoinsubkategoriankor = [
       //   for (const poin of poinsubkategoriankor) {
       const createdPoin = await prisma.poinsubkategoriankor.create({
         data: {
-          name: poinsubkategoriankor,
+          name: poinsubkategoriankor.name,
           subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
           createdById: administratorId,
         },
