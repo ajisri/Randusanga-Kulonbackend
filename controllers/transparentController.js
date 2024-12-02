@@ -756,7 +756,7 @@ export const getSubkategoriAnkorAdmin = [
   },
 ];
 
-export const createSubkategoriAndPoin = [
+export const createSubkategoriAnkor = [
   verifyAdmin,
   // Validasi input menggunakan express-validator
   check("subkategoriData")
