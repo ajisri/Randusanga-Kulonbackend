@@ -764,6 +764,7 @@ export const createSubkategoriAnkor = [
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
 
   async (req, res) => {
+    console.log("Fungsi utama API dipanggil.");
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log("Validation errors:", errors.array());
