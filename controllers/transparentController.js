@@ -758,7 +758,6 @@ export const getSubkategoriAnkorAdmin = [
 
 export const createSubkategoriAnkor = [
   verifyAdmin,
-  // Validasi input menggunakan express-validator
   check("subkategoriankorData")
     .isArray({ min: 1 })
     .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
@@ -781,45 +780,79 @@ export const createSubkategoriAnkor = [
     try {
       const result = await prisma.$transaction(async (prisma) => {
         const createdSubkategoriankors = [];
-
         for (const subkategoriankor of subkategoriankorData) {
-          const { name, kategoriankorId, poinsubkategoriankor } =
+          const { name, kategoriankorId, poinsubkategoriankor, uuid } =
             subkategoriankor;
 
-          // Membuat Subkategoriankor
-          const createdSubkategoriankor = await prisma.subkategoriankor.create({
-            data: {
-              name,
-              kategoriankorId,
-              createdById,
-            },
-          });
-
-          // Membuat Poinsubkategoriankor jika ada
-          const createdPoins = [];
-          if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
-            for (const poin of poinsubkategoriankor) {
-              const createdPoin = await prisma.poinsubkategoriankor.create({
+          if (uuid) {
+            // Update subkategori yang ada berdasarkan UUID
+            const updatedSubkategoriankor =
+              await prisma.subkategoriankor.update({
+                where: { uuid },
                 data: {
-                  name: poin.name,
-                  subkategoriankorId: createdSubkategoriankor.uuid,
+                  name,
+                  kategoriankorId,
+                  updatedById: createdById,
                 },
               });
-              createdPoins.push(createdPoin);
-            }
-          }
 
-          createdSubkategoriankors.push({
-            subkategoriankor: createdSubkategoriankor,
-            poins: createdPoins,
-          });
+            const updatedPoins = [];
+            if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+              for (const poin of poinsubkategoriankor) {
+                const updatedPoin = await prisma.poinsubkategoriankor.upsert({
+                  where: {
+                    subkategoriankorId_name: {
+                      subkategoriankorId: uuid,
+                      name: poin.name,
+                    },
+                  },
+                  update: { name: poin.name },
+                  create: { name: poin.name, subkategoriankorId: uuid },
+                });
+                updatedPoins.push(updatedPoin);
+              }
+            }
+
+            createdSubkategoriankors.push({
+              subkategoriankor: updatedSubkategoriankor,
+              poins: updatedPoins,
+            });
+          } else {
+            // Jika uuid tidak ada, buat subkategori baru
+            const createdSubkategoriankor =
+              await prisma.subkategoriankor.create({
+                data: {
+                  name,
+                  kategoriankorId,
+                  createdById,
+                },
+              });
+
+            const createdPoins = [];
+            if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+              for (const poin of poinsubkategoriankor) {
+                const createdPoin = await prisma.poinsubkategoriankor.create({
+                  data: {
+                    name: poin.name,
+                    subkategoriankorId: createdSubkategoriankor.uuid,
+                  },
+                });
+                createdPoins.push(createdPoin);
+              }
+            }
+
+            createdSubkategoriankors.push({
+              subkategoriankor: createdSubkategoriankor,
+              poins: createdPoins,
+            });
+          }
         }
 
         return createdSubkategoriankors;
       });
 
       return res.status(200).json({
-        message: "Subkategori dan Poin berhasil disimpan.",
+        message: "Subkategori dan Poin berhasil diproses.",
         result,
       });
     } catch (error) {
@@ -963,38 +996,24 @@ export const deleteSubkategoriAnkor = [
 
 //Poin Subkategori
 export const createPoinsubkategoriankor = [
-  // Middleware untuk memastikan pengguna adalah admin
   verifyAdmin,
   check("subkategoriankorId")
     .isUUID()
-    .withMessage("subkategoriankorId harus merupakan UUID yang valid"), // Validasi subkategoriankorId yang wajib
+    .withMessage("subkategoriankorId harus merupakan UUID yang valid"),
 
   async (req, res) => {
-    console.log(
-      "=== DEBUG: Request Payload ===",
-      JSON.stringify(req.body, null, 2)
-    );
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error("=== DEBUG: Validation Errors ===", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { administratorId } = req; // Dapatkan administratorId dari middleware
-    const { url, subkategoriankorId } = req.body; // Dapatkan data dari body request
+    const { poinsubkategoriankor, subkategoriankorId } = req.body;
 
     try {
-      // Validasi subkategoriankorId
-      if (!subkategoriankorId) {
-        return res.status(400).json({
-          msg: "subkategoriankorId harus diisi dan valid.",
-        });
-      }
-
       // Cek apakah subkategoriankorId ada dalam database
       const subkategoriankorExists = await prisma.subkategoriankor.findUnique({
-        where: { id: subkategoriankorId },
+        where: { uuid: subkategoriankorId },
       });
 
       if (!subkategoriankorExists) {
@@ -1003,33 +1022,27 @@ export const createPoinsubkategoriankor = [
         });
       }
 
-      // Buat data Poinsubkategoriankor baru
-      const createdPoinsubkategoriankor =
-        await prisma.poinsubkategoriankor.create({
-          data: {
-            url, // URL dari body request
-            subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
-            createdById: administratorId, // Menyimpan ID admin yang membuat
-          },
-        });
-
-      console.log(
-        "=== DEBUG: Poinsubkategoriankor Created ===",
-        createdPoinsubkategoriankor
-      );
+      const createdPoins = [];
+      if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+        for (const poin of poinsubkategoriankor) {
+          const createdPoin = await prisma.poinsubkategoriankor.create({
+            data: {
+              name: poin.name,
+              subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
+              createdById: administratorId,
+            },
+          });
+          createdPoins.push(createdPoin);
+        }
+      }
 
       return res.status(200).json({
         message: "Poinsubkategoriankor berhasil dibuat",
-        data: createdPoinsubkategoriankor,
+        data: createdPoins,
       });
     } catch (error) {
-      console.error("=== DEBUG: Error managing Poinsubkategoriankor ===");
-      console.error(error);
-
-      return res.status(500).json({
-        msg: "Terjadi kesalahan pada server.",
-        detail: error.message,
-      });
+      console.error("Error mengelola Poinsubkategoriankor:", error);
+      return res.status(500).json({ msg: "Terjadi kesalahan pada server." });
     }
   },
 ];
