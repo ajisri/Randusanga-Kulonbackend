@@ -965,23 +965,23 @@ export const createPoinsubkategoriankor = [
         });
       }
 
-      const createdPoins = [];
-      if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
-        for (const poin of poinsubkategoriankor) {
-          const createdPoin = await prisma.poinsubkategoriankor.create({
-            data: {
-              name: poin.name,
-              subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
-              createdById: administratorId,
-            },
-          });
-          createdPoins.push(createdPoin);
-        }
-      }
+      // const createdPoins = [];
+      // if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+      //   for (const poin of poinsubkategoriankor) {
+      const createdPoin = await prisma.poinsubkategoriankor.create({
+        data: {
+          name: poin.name,
+          subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
+          createdById: administratorId,
+        },
+      });
+      // createdPoins.push(createdPoin);
+      //   }
+      // }
 
       return res.status(200).json({
         message: "Poinsubkategoriankor berhasil dibuat",
-        data: createdPoins,
+        data: createdPoin,
       });
     } catch (error) {
       console.error("Error mengelola Poinsubkategoriankor:", error);
