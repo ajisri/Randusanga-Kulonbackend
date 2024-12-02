@@ -773,6 +773,9 @@ export const createSubkategoriAnkor = [
     const { name, kategoriankorId, poinsubkategoriankor } = req.body;
     const subkategoriankorUuid = req.params.uuid;
 
+    console.log("Payload yang diterima:", req.body);
+    console.log("UUID Subkategoriankor:", subkategoriankorUuid);
+
     try {
       const result = await prisma.$transaction(async (prisma) => {
         let subkategoriankor;
