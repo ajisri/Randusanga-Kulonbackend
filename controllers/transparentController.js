@@ -789,7 +789,7 @@ export const createSubkategoriAnkor = [
       }
 
       const newSubkategoriAnkor = await prisma.subkategoriankor.create({
-        data: { name, createdById },
+        data: { name, kategoriankorId, createdById },
       });
 
       return res.status(201).json({
