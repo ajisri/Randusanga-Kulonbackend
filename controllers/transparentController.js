@@ -756,121 +756,74 @@ export const getSubkategoriAnkorAdmin = [
   },
 ];
 
-export const createSubkategoriAnkor = [
+export const createSubkategoriAndPoin = [
   verifyAdmin,
-  check("name").notEmpty().withMessage("Nama subkategori harus diisi"),
-  check("kategoriankorId")
+  // Validasi input menggunakan express-validator
+  check("subkategoriData")
+    .isArray({ min: 1 })
+    .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
+  check("subkategoriData.*.name")
+    .notEmpty()
+    .withMessage("Nama subkategori harus diisi"),
+  check("subkategoriData.*.kategoriankorId")
     .isUUID()
     .withMessage("kategoriankorId harus merupakan UUID yang valid"),
 
   async (req, res) => {
-    console.log("Fungsi utama API dipanggil.");
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const createdById = req.administratorId;
-    const { name, kategoriankorId, poinsubkategoriankor } = req.body;
-    const subkategoriankorUuid = req.params.uuid;
-
-    console.log("Payload diterima:");
-    console.log("Name:", name);
-    console.log("KategoriankorId:", kategoriankorId);
-    console.log("Poinsubkategoriankor:", poinsubkategoriankor);
-    console.log("Subkategoriankor UUID (edit mode):", subkategoriankorUuid);
+    const subkategoriData = req.body.subkategoriData;
 
     try {
       const result = await prisma.$transaction(async (prisma) => {
-        let subkategoriankor;
+        const createdSubkategoris = [];
 
-        // Handle Create or Update SubkategoriAnkor
-        if (subkategoriankorUuid) {
-          console.log("Edit mode: Updating SubkategoriAnkor...");
-          subkategoriankor = await prisma.subkategoriankor.update({
-            where: { uuid: subkategoriankorUuid },
-            data: { name, kategoriankorId },
+        for (const subkategori of subkategoriData) {
+          const { name, kategoriankorId, poinsubkategoriankor } = subkategori;
+
+          // Membuat Subkategoriankor
+          const createdSubkategori = await prisma.subkategoriankor.create({
+            data: {
+              name,
+              kategoriankorId,
+              createdById,
+            },
           });
-          console.log("Subkategoriankor updated:", subkategoriankor);
-        } else {
-          console.log("Add mode: Creating new SubkategoriAnkor...");
-          subkategoriankor = await prisma.subkategoriankor.create({
-            data: { name, kategoriankorId, createdById },
-          });
-          console.log("Subkategoriankor created:", subkategoriankor);
-        }
 
-        const subkategoriankorId = subkategoriankor.uuid;
-        console.log("Subkategoriankor ID:", subkategoriankorId);
-
-        // **Fetch existing Poinsubkategoriankor**
-        const existingPoins = await prisma.poinsubkategoriankor.findMany({
-          where: { subkategoriankorId },
-        });
-        console.log("Existing poinsubkategoriankor:", existingPoins);
-
-        const existingIds = new Set(existingPoins.map((p) => p.id));
-        const uuidsToKeep = new Set();
-
-        // Handle poinsubkategoriankor creation or update
-        for (const poin of poinsubkategoriankor) {
-          if (poin.id) {
-            console.log("Updating poin:", poin);
-            const existingPoin = existingPoins.find((p) => p.id === poin.id);
-            if (existingPoin) {
-              const updatedPoin = await prisma.poinsubkategoriankor.update({
-                where: { id: poin.id },
-                data: { name: poin.name },
+          // Membuat Poinsubkategoriankor jika ada
+          const createdPoins = [];
+          if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+            for (const poin of poinsubkategoriankor) {
+              const createdPoin = await prisma.poinsubkategoriankor.create({
+                data: {
+                  name: poin.name,
+                  subkategoriankorId: createdSubkategori.uuid,
+                },
               });
-              console.log("Updated poin:", updatedPoin);
-              uuidsToKeep.add(poin.id);
-            } else {
-              console.log("Poin not found for update:", poin.id);
-              throw new Error(
-                `Poin Subkategoriankor dengan ID ${poin.id} tidak ditemukan.`
-              );
+              createdPoins.push(createdPoin);
             }
-          } else {
-            console.log("Creating new poin:", poin);
-            const createdPoin = await prisma.poinsubkategoriankor.create({
-              data: {
-                name: poin.name,
-                subkategoriankorId, // This will correctly link to the SubkategoriAnkor
-              },
-            });
-            console.log("Created poin:", createdPoin);
-            uuidsToKeep.add(createdPoin.id);
           }
-        }
 
-        // Deleting old poins that are not part of the request
-        const idsToDelete = [...existingIds].filter(
-          (id) => !uuidsToKeep.has(id)
-        );
-        console.log("Poinsubkategoriankor IDs to delete:", idsToDelete);
-
-        if (idsToDelete.length > 0) {
-          await prisma.poinsubkategoriankor.deleteMany({
-            where: { id: { in: idsToDelete } },
+          createdSubkategoris.push({
+            subkategori: createdSubkategori,
+            poins: createdPoins,
           });
-          console.log("Deleted poinsubkategoriankor IDs:", idsToDelete);
         }
 
-        return { subkategoriankor, poinsubkategoriankor: [...uuidsToKeep] };
+        return createdSubkategoris;
       });
 
-      console.log("Transaction result:", result);
       return res.status(200).json({
-        message: "Data SubkategoriAnkor berhasil diatur",
-        data: result,
+        message: "Subkategori dan Poin berhasil disimpan.",
+        result,
       });
     } catch (error) {
-      console.error("Error during transaction:", error);
-      return res.status(500).json({
-        msg: "Terjadi kesalahan pada server.",
-        error: error.message,
-      });
+      console.error("Error mengelola Subkategori dan Poin:", error);
+      return res.status(500).json({ msg: "Terjadi kesalahan pada server." });
     }
   },
 ];
