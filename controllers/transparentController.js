@@ -964,6 +964,7 @@ export const createPoinsubkategoriankor = [
           msg: "Subkategoriankor tidak ditemukan.",
         });
       }
+      console.log("🚀 ~ poinsubkategoriankor:", poinsubkategoriankor);
 
       // const createdPoins = [];
       // if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
