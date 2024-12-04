@@ -742,7 +742,11 @@ export const getSubkategoriAnkorAdmin = [
   verifyAdmin,
   async (req, res) => {
     try {
-      const subkategoriankors = await prisma.subkategoriankor.findMany();
+      const subkategoriankors = await prisma.subkategoriankor.findMany({
+        include: {
+          poinsubkategoriankor: true, // Menyertakan data poinsubkategoriankor
+        },
+      });
 
       // Mengirim array kosong jika tidak ada data
       if (!subkategoriankors || subkategoriankors.length === 0) {
