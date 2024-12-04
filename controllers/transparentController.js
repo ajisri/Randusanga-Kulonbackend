@@ -744,7 +744,9 @@ export const getSubkategoriAnkorAdmin = [
     try {
       const subkategoriankors = await prisma.subkategoriankor.findMany({
         include: {
-          poinsubkategoriankor: true, // Menyertakan data poinsubkategoriankor
+          poinsubkategoriankor: {
+            select: { uuid: true, name: true },
+          }, // Menyertakan data poinsubkategoriankor
         },
       });
 
