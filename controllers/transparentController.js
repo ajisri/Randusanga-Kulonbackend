@@ -1001,6 +1001,8 @@ export const updatePoinsubkategoriankor = [
     .isUUID()
     .withMessage("uuid update harus merupakan UUID yang valid"),
   async (req, res) => {
+    const { uuid } = req.params; // mengambil UUID dari URL params
+    console.log("Received UUID:", uuid);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
