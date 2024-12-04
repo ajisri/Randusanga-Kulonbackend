@@ -11,6 +11,7 @@ import {
   updateProdukHukum,
   deleteProdukHukum,
   createPoinsubkategoriankor,
+  updatePoinsubkategoriankor,
   getSubkategoriAnkorByKategoriAnkorId,
   createSubkategoriAnkor,
   getSubkategoriAnkorAdmin,
@@ -118,6 +119,13 @@ router.post(
   verifyToken,
   superOnly,
   createPoinsubkategoriankor
+);
+
+router.patch(
+  "/poinsubkategoriankor/:uuid",
+  verifyToken,
+  superOnly,
+  updatePoinsubkategoriankor
 );
 
 //pengunjung produk hukum
