@@ -997,9 +997,9 @@ export const createPoinsubkategoriankor = [
 
 export const updatePoinsubkategoriankor = [
   verifyAdmin,
-  check("subkategoriankorId")
+  check("uuid")
     .isUUID()
-    .withMessage("subkategoriankorId update harus merupakan UUID yang valid"),
+    .withMessage("uuid update harus merupakan UUID yang valid"),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
