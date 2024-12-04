@@ -999,7 +999,7 @@ export const updatePoinsubkategoriankor = [
   verifyAdmin,
   check("subkategoriankorId")
     .isUUID()
-    .withMessage("subkategoriankorId harus merupakan UUID yang valid"),
+    .withMessage("subkategoriankorId update harus merupakan UUID yang valid"),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
