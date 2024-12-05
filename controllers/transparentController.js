@@ -1001,7 +1001,15 @@ export const updatePoinsubkategoriankor = [
   verifyAdmin,
   async (req, res) => {
     const { subkategoriankorId, poinsubkategoriankor } = req.body;
-
+    console.log("Data received for update:", req.body);
+    const updatedPoint = await prisma.poinsubkategoriankor.update({
+      where: { uuid: req.params.uuid },
+      data: {
+        name: req.body.name,
+        subkategoriankorId: req.body.subkategoriankorId,
+      },
+    });
+    console.log("Updated point:", updatedPoint);
     try {
       // Cek subkategoriankor
       const subkategoriExists = await prisma.subkategoriankor.findUnique({
