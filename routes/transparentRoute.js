@@ -122,7 +122,7 @@ router.post(
 );
 
 router.patch(
-  "/poinsubkategoriankor/:uuid",
+  "/poinsubkategoriankor",
   verifyToken,
   superOnly,
   updatePoinsubkategoriankor
