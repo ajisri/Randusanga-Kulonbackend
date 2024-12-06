@@ -997,7 +997,7 @@ export const createPoinsubkategoriankor = [
   },
 ];
 
-export const updateSubkategoriankor = [
+export const updatePoinsubkategoriankor = [
   verifyAdmin,
   async (req, res) => {
     const errors = validationResult(req);
