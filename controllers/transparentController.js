@@ -1066,8 +1066,10 @@ export const updatePoinsubkategoriankor = [
         .status(200)
         .json({ msg: "Poinsubkategoriankor berhasil diperbarui." });
     } catch (error) {
-      console.error("Error:", error);
-      res.status(500).json({ msg: "Terjadi kesalahan pada server." });
+      console.error("Error during updatePoinsubkategoriankor:", error); // Tambahkan logging lengkap error
+      res
+        .status(500)
+        .json({ msg: "Terjadi kesalahan pada server.", error: error.message });
     }
   },
 ];
