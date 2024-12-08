@@ -811,72 +811,85 @@ export const createSubkategoriAnkor = [
   },
 ];
 
-export const updateSubkategoriAnkor = [
-  // Middleware untuk memastikan pengguna adalah admin
-  verifyAdmin,
+export const updatePoinsubkategoriAnkor = [
+  verifyAdmin, // Middleware untuk memastikan user adalah admin
 
-  // Validasi input menggunakan express-validator
-  check("uuid").isUUID().withMessage("UUID harus berupa UUID yang valid"),
-  check("name")
-    .optional()
+  // Middleware validasi input menggunakan express-validator
+  check("poinsubkategoriankorData")
+    .isArray({ min: 1 })
+    .withMessage(
+      "poinsubkategoriankorData harus berupa array dan tidak boleh kosong"
+    ),
+  check("poinsubkategoriankorData.*.uuid")
+    .isUUID()
+    .withMessage("UUID poin harus berupa UUID yang valid"),
+  check("poinsubkategoriankorData.*.name")
     .notEmpty()
-    .withMessage("Nama subkategori harus diisi"),
-  check("url")
-    .optional()
-    .isURL()
-    .withMessage("URL harus berupa URL yang valid"),
+    .withMessage("Nama poin harus diisi"),
+  check("poinsubkategoriankorData.*.subkategoriankorId")
+    .isUUID()
+    .withMessage("subkategoriankorId harus berupa UUID yang valid"),
 
+  // Handler utama untuk memperbarui data poin subkategori
   async (req, res) => {
-    console.log(
-      "=== DEBUG: Request Payload ===",
-      JSON.stringify(req.body, null, 2)
-    );
-
+    // Validasi input dari middleware sebelumnya
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error("=== DEBUG: Validation Errors ===", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { uuid, name, url } = req.body; // Dapatkan data dari body request
+    const { poinsubkategoriankorData } = req.body;
 
     try {
-      // Cek apakah subkategoriAnkor dengan UUID tersebut ada
-      const existingSubkategoriAnkor = await prisma.subkategoriankor.findUnique(
-        {
-          where: { uuid },
-        }
-      );
+      // Array untuk menyimpan hasil pembaruan
+      const updatedResults = [];
 
-      if (!existingSubkategoriAnkor) {
+      // Iterasi setiap poin dalam array
+      for (const poin of poinsubkategoriankorData) {
+        const { uuid, name, subkategoriankorId } = poin;
+
+        // Cek apakah poin dengan UUID tersebut ada
+        const existingPoin = await prisma.poinsubkategoriankor.findUnique({
+          where: { uuid },
+        });
+
+        if (!existingPoin) {
+          // Jika poin tidak ditemukan, lanjutkan ke poin berikutnya
+          console.warn(`Poin dengan UUID ${uuid} tidak ditemukan.`);
+          continue;
+        }
+
+        // Perbarui poin yang ditemukan
+        const updatedPoin = await prisma.poinsubkategoriankor.update({
+          where: { uuid },
+          data: {
+            name,
+            subkategoriankorId,
+            updated_at: new Date(),
+          },
+        });
+
+        // Tambahkan hasil ke array updatedResults
+        updatedResults.push(updatedPoin);
+      }
+
+      // Jika tidak ada data yang diperbarui, kembalikan respons khusus
+      if (updatedResults.length === 0) {
         return res.status(404).json({
-          msg: `SubkategoriAnkor dengan UUID ${uuid} tidak ditemukan.`,
+          msg: "Tidak ada poin yang ditemukan untuk diperbarui.",
         });
       }
 
-      // Update data
-      const updatedSubkategoriAnkor = await prisma.subkategoriankor.update({
-        where: { uuid },
-        data: {
-          name: name || existingSubkategoriAnkor.name, // Menggunakan nama lama jika tidak diubah
-          url: url || existingSubkategoriAnkor.url, // Menggunakan URL lama jika tidak diubah
-          updated_at: new Date(),
-        },
-      });
-
-      console.log(
-        "=== DEBUG: SubkategoriAnkor Updated ===",
-        updatedSubkategoriAnkor
-      );
-
+      // Kirim respons sukses beserta data poin yang diperbarui
       return res.status(200).json({
-        message: "SubkategoriAnkor berhasil diperbarui",
-        data: updatedSubkategoriAnkor,
+        msg: "Poin Subkategori berhasil diperbarui",
+        data: updatedResults,
       });
     } catch (error) {
-      console.error("=== DEBUG: Error managing SubkategoriAnkor ===");
-      console.error(error);
+      // Log kesalahan untuk debugging
+      console.error("Error saat memperbarui Poin Subkategori:", error);
 
+      // Kirim respons error ke klien
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server.",
         detail: error.message,
