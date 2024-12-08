@@ -965,8 +965,8 @@ export const getPoinSubkategoriAnkorBySubKategoriAnkorId = [
 
       if (!poins || poins.length === 0) {
         return res
-          .status(404)
-          .json({ message: "Data poin subkategori ankor tidak ditemukan" });
+          .status(200) // Status sukses
+          .json([]);
       }
 
       res.status(200).json(poins);
