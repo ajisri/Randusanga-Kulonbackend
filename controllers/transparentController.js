@@ -1006,28 +1006,9 @@ export const updatePoinsubkategoriankor = [
     }
 
     const { administratorId } = req; // Dapatkan administratorId dari middleware
-    const { uuid, name, kategoriankorId, poinsubkategoriankor } = req.body;
+    const { uuid, name, poinsubkategoriankor } = req.body;
 
     try {
-      // 1. Update subkategoriankor
-      const subkategoriankorExists = await prisma.subkategoriankor.findUnique({
-        where: { uuid },
-      });
-
-      if (!subkategoriankorExists) {
-        return res.status(404).json({
-          msg: "Subkategoriankor tidak ditemukan.",
-        });
-      }
-
-      const updatedSubkategoriankor = await prisma.subkategoriankor.update({
-        where: { uuid },
-        data: {
-          name,
-          kategoriankorId,
-        },
-      });
-
       // 2. Proses poin-poin subkategori
       const existingPoins = await prisma.poinsubkategoriankor.findMany({
         where: { subkategoriankorId: uuid },
@@ -1077,7 +1058,6 @@ export const updatePoinsubkategoriankor = [
       return res.status(200).json({
         message: "Subkategoriankor dan poin-poin berhasil diperbarui.",
         data: {
-          updatedSubkategoriankor,
           createdPoins,
           updatedPoins,
           deletedPoins,
