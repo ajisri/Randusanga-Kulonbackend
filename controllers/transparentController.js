@@ -359,19 +359,79 @@ export const getAllDataAnkor = [
         include: {
           createdBy: {
             select: {
-              uuid: true, // Ambil hanya UUID atau tambahkan field lain sesuai kebutuhan
+              uuid: true,
               name: true,
             },
           },
           kategoriankor: {
             include: {
-              subkategoriankor: {
+              createdBy: {
                 select: {
                   uuid: true,
                   name: true,
-                  url: true,
                 },
               },
+              ankor: {
+                select: {
+                  id: true, // Include ankorId
+                  name: true,
+                },
+              },
+              subkategoriankor: {
+                include: {
+                  createdBy: {
+                    select: {
+                      uuid: true,
+                      name: true,
+                    },
+                  },
+                  kategoriankor: {
+                    select: {
+                      id: true, // Include kategoriankorId
+                      uuid: true,
+                      name: true,
+                    },
+                  },
+                  poinsubkategoriankor: {
+                    include: {
+                      createdBy: {
+                        select: {
+                          uuid: true,
+                          name: true,
+                        },
+                      },
+                      subkategoriankor: {
+                        select: {
+                          id: true, // Include subkategoriankorId
+                          uuid: true,
+                          name: true,
+                        },
+                      },
+                    },
+                    select: {
+                      uuid: true,
+                      name: true,
+                      created_at: true,
+                      updated_at: true,
+                      subkategoriankorId: true, // Include relation field
+                    },
+                  },
+                },
+                select: {
+                  uuid: true,
+                  name: true,
+                  created_at: true,
+                  updated_at: true,
+                  kategoriankorId: true, // Include relation field
+                },
+              },
+            },
+            select: {
+              uuid: true,
+              name: true,
+              created_at: true,
+              updated_at: true,
+              ankorId: true, // Include relation field
             },
           },
         },
@@ -379,14 +439,14 @@ export const getAllDataAnkor = [
 
       res.status(200).json({
         success: true,
-        message: "Data Ankor berhasil diambil.",
+        message: "Data Ankor successfully retrieved.",
         data: dataAnkor,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Terjadi kesalahan pada server",
-        error: error.message, // Tambahkan informasi error
+        message: "An error occurred on the server.",
+        error: error.message,
       });
     }
   },
