@@ -970,25 +970,23 @@ export const createPoinsubkategoriankor = [
           msg: "Subkategoriankor tidak ditemukan.",
         });
       }
-      console.log("🚀 ~ poinsubkategoriankor:", poinsubkategoriankor);
 
-      // const createdPoins = [];
-      // if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
-      //   for (const poin of poinsubkategoriankor) {
-      const createdPoin = await prisma.poinsubkategoriankor.create({
-        data: {
-          name: poinsubkategoriankor.name,
-          subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
-          createdById: administratorId,
-        },
-      });
-      // createdPoins.push(createdPoin);
-      //   }
-      // }
+      // Buat semua poin subkategoriankor
+      const createdPoins = await Promise.all(
+        poinsubkategoriankor.map((poin) =>
+          prisma.poinsubkategoriankor.create({
+            data: {
+              name: poin.name,
+              subkategoriankorId, // Hubungkan dengan subkategoriankor
+              createdById: administratorId,
+            },
+          })
+        )
+      );
 
       return res.status(200).json({
-        message: "Poinsubkategoriankor berhasil dibuat",
-        data: createdPoin,
+        message: "Poinsubkategoriankor berhasil dibuat.",
+        data: createdPoins,
       });
     } catch (error) {
       console.error("Error mengelola Poinsubkategoriankor:", error);
@@ -1070,7 +1068,7 @@ export const updatePoinsubkategoriankor = [
       );
 
       // 2c. Hapus poin yang dihapus
-      const deletedPoins = await prisma.poinsubkategoriankor.deleteMany({
+      await prisma.poinsubkategoriankor.deleteMany({
         where: { uuid: { in: toDelete } },
       });
 
@@ -1080,7 +1078,6 @@ export const updatePoinsubkategoriankor = [
           updatedSubkategoriankor,
           createdPoins,
           updatedPoins,
-          deletedPoins,
         },
       });
     } catch (error) {
