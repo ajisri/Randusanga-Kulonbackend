@@ -10,8 +10,8 @@ import {
   createProdukHukum,
   updateProdukHukum,
   deleteProdukHukum,
+  getPoinSubkategoriAnkorBySubKategoriAnkorId,
   createPoinsubkategoriankor,
-  updatePoinsubkategoriankor,
   getSubkategoriAnkorByKategoriAnkorId,
   createSubkategoriAnkor,
   getSubkategoriAnkorAdmin,
@@ -114,18 +114,18 @@ router.delete(
 );
 
 //Poinsubkategori
+router.get(
+  "/poinbysubkategoriankor/:subkategoriankorId",
+  verifyToken,
+  superOnly,
+  getPoinSubkategoriAnkorBySubKategoriAnkorId
+);
+
 router.post(
   "/cpoinsubkategoriankor",
   verifyToken,
   superOnly,
   createPoinsubkategoriankor
-);
-
-router.patch(
-  "/poinsubkategoriankor/:uuid",
-  verifyToken,
-  superOnly,
-  updatePoinsubkategoriankor
 );
 
 //pengunjung produk hukum
