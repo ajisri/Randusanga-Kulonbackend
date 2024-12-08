@@ -821,10 +821,6 @@ export const updateSubkategoriAnkor = [
     .optional()
     .notEmpty()
     .withMessage("Nama subkategori harus diisi"),
-  check("url")
-    .optional()
-    .isURL()
-    .withMessage("URL harus berupa URL yang valid"),
 
   async (req, res) => {
     console.log(
@@ -970,23 +966,25 @@ export const createPoinsubkategoriankor = [
           msg: "Subkategoriankor tidak ditemukan.",
         });
       }
+      console.log("🚀 ~ poinsubkategoriankor:", poinsubkategoriankor);
 
-      // Buat semua poin subkategoriankor
-      const createdPoins = await Promise.all(
-        poinsubkategoriankor.map((poin) =>
-          prisma.poinsubkategoriankor.create({
-            data: {
-              name: poin.name,
-              subkategoriankorId, // Hubungkan dengan subkategoriankor
-              createdById: administratorId,
-            },
-          })
-        )
-      );
+      // const createdPoins = [];
+      // if (poinsubkategoriankor && poinsubkategoriankor.length > 0) {
+      //   for (const poin of poinsubkategoriankor) {
+      const createdPoin = await prisma.poinsubkategoriankor.create({
+        data: {
+          name: poinsubkategoriankor.name,
+          subkategoriankorId, // Menghubungkan dengan subkategoriankor yang sudah ada
+          createdById: administratorId,
+        },
+      });
+      // createdPoins.push(createdPoin);
+      //   }
+      // }
 
       return res.status(200).json({
-        message: "Poinsubkategoriankor berhasil dibuat.",
-        data: createdPoins,
+        message: "Poinsubkategoriankor berhasil dibuat",
+        data: createdPoin,
       });
     } catch (error) {
       console.error("Error mengelola Poinsubkategoriankor:", error);
@@ -1004,28 +1002,9 @@ export const updatePoinsubkategoriankor = [
     }
 
     const { administratorId } = req; // Dapatkan administratorId dari middleware
-    const { uuid, name, kategoriankorId, poinsubkategoriankor } = req.body;
+    const { uuid, poinsubkategoriankor } = req.body;
 
     try {
-      // 1. Update subkategoriankor
-      const subkategoriankorExists = await prisma.subkategoriankor.findUnique({
-        where: { uuid },
-      });
-
-      if (!subkategoriankorExists) {
-        return res.status(404).json({
-          msg: "Subkategoriankor tidak ditemukan.",
-        });
-      }
-
-      const updatedSubkategoriankor = await prisma.subkategoriankor.update({
-        where: { uuid },
-        data: {
-          name,
-          kategoriankorId,
-        },
-      });
-
       // 2. Proses poin-poin subkategori
       const existingPoins = await prisma.poinsubkategoriankor.findMany({
         where: { subkategoriankorId: uuid },
@@ -1068,16 +1047,16 @@ export const updatePoinsubkategoriankor = [
       );
 
       // 2c. Hapus poin yang dihapus
-      await prisma.poinsubkategoriankor.deleteMany({
+      const deletedPoins = await prisma.poinsubkategoriankor.deleteMany({
         where: { uuid: { in: toDelete } },
       });
 
       return res.status(200).json({
         message: "Subkategoriankor dan poin-poin berhasil diperbarui.",
         data: {
-          updatedSubkategoriankor,
           createdPoins,
           updatedPoins,
+          deletedPoins,
         },
       });
     } catch (error) {
