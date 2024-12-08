@@ -365,33 +365,8 @@ export const getAllDataAnkor = [
           },
           kategoriankor: {
             include: {
-              createdBy: {
-                select: {
-                  uuid: true,
-                  name: true,
-                },
-              },
-              ankor: {
-                select: {
-                  id: true, // Include ankorId
-                  name: true,
-                },
-              },
               subkategoriankor: {
                 include: {
-                  createdBy: {
-                    select: {
-                      uuid: true,
-                      name: true,
-                    },
-                  },
-                  kategoriankor: {
-                    select: {
-                      id: true, // Include kategoriankorId
-                      uuid: true,
-                      name: true,
-                    },
-                  },
                   poinsubkategoriankor: {
                     include: {
                       createdBy: {
@@ -400,38 +375,10 @@ export const getAllDataAnkor = [
                           name: true,
                         },
                       },
-                      subkategoriankor: {
-                        select: {
-                          id: true, // Include subkategoriankorId
-                          uuid: true,
-                          name: true,
-                        },
-                      },
-                    },
-                    select: {
-                      uuid: true,
-                      name: true,
-                      created_at: true,
-                      updated_at: true,
-                      subkategoriankorId: true, // Include relation field
                     },
                   },
                 },
-                select: {
-                  uuid: true,
-                  name: true,
-                  created_at: true,
-                  updated_at: true,
-                  kategoriankorId: true, // Include relation field
-                },
               },
-            },
-            select: {
-              uuid: true,
-              name: true,
-              created_at: true,
-              updated_at: true,
-              ankorId: true, // Include relation field
             },
           },
         },
