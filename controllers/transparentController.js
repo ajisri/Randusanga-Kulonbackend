@@ -368,12 +368,16 @@ export const getAllDataAnkor = [
               subkategoriankor: {
                 include: {
                   poinsubkategoriankor: {
-                    include: {
+                    select: {
+                      // Mengambil uuid, name, dan url
+                      uuid: true,
+                      name: true,
+                      url: true,
                       createdBy: {
+                        // Informasi terkait pembuat
                         select: {
                           uuid: true,
                           name: true,
-                          url: true,
                         },
                       },
                     },
