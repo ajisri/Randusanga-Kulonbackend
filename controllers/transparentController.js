@@ -373,6 +373,7 @@ export const getAllDataAnkor = [
                         select: {
                           uuid: true,
                           name: true,
+                          url: true,
                         },
                       },
                     },
@@ -993,6 +994,10 @@ export const createPoinsubkategoriankor = [
   check("subkategoriData.*.name")
     .notEmpty()
     .withMessage("Nama poin harus diisi"),
+  check("url")
+    .optional()
+    .isURL()
+    .withMessage("URL harus berupa URL yang valid"),
   check("poinData.*.subkategoriankorId")
     .isUUID()
     .withMessage("KategoriId harus merupakan UUID yang valid"),
@@ -1018,7 +1023,7 @@ export const createPoinsubkategoriankor = [
         const existingUuidsPoin = new Set(existingPoins.map((s) => s.uuid));
 
         for (const poin of poinData) {
-          const { uuid, name } = poin;
+          const { uuid, name, url } = poin;
           let createdPoin;
 
           if (uuid) {
@@ -1028,6 +1033,7 @@ export const createPoinsubkategoriankor = [
                 where: { uuid },
                 data: {
                   name,
+                  url,
                   subkategoriankorId,
                 },
               });
@@ -1042,6 +1048,7 @@ export const createPoinsubkategoriankor = [
             createdPoin = await prisma.poinsubkategoriankor.create({
               data: {
                 name,
+                url,
                 subkategoriankorId,
                 createdById,
               },
