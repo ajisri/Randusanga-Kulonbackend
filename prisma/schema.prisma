@@ -110,8 +110,8 @@ model MasaJabatan {
 }
 
 model Tugas {
-  id          String   @id @default(uuid())
-  namatugas   String
+  id          Int   @id @default(autoincrement())
+  content     String       @db.LongText
   jabatanId   String
   jabatan     Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -119,8 +119,8 @@ model Tugas {
 }
 
 model Fungsi {
-  id          String   @id @default(uuid())
-  namafungsi   String
+  id          Int   @id @default(autoincrement())
+  content     String       @db.LongText
   jabatanId   String
   jabatan     Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
   createdAt   DateTime @default(now())
