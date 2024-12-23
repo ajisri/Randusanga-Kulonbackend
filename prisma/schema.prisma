@@ -85,8 +85,8 @@ model Jabatan {
   uuid            String   @default(uuid()) @unique
   nama        String
   ringkasan   String?
-  tugas       String?
-  fungsi      String?
+  tugas       Tugas[]
+  fungsi      Fungsi[]
   masaJabatan MasaJabatan[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -107,6 +107,24 @@ model MasaJabatan {
   createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
 
   @@unique([jabatanId, mulai])
+}
+
+model Tugas {
+  id          String   @id @default(uuid())
+  namatugas   String
+  jabatanId   String
+  jabatan     Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Fungsi {
+  id          String   @id @default(uuid())
+  namafungsi   String
+  jabatanId   String
+  jabatan     Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Tabel Profil dengan submenu
