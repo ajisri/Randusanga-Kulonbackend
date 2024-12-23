@@ -63,6 +63,8 @@ model Administrator {
   Kategoriankor Kategoriankor[]
   Subkategoriankor Subkategoriankor[]
   Poinsubkategoriankor Poinsubkategoriankor[]
+  Jabatan Jabatan[]
+  MasaJabatan MasaJabatan[]
 }
 
 model User{
@@ -76,6 +78,31 @@ model User{
   refresh_token String? @db.VarChar(255) @unique
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
+}
+
+model Jabatan {
+  id          String   @id @default(uuid())
+  nama        String
+  ringkasan   String?
+  tugas       String?
+  fungsi      String?
+  masaJabatan MasaJabatan[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdbyId Int
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+}
+
+model MasaJabatan {
+  id           String   @id @default(uuid())
+  pejabatNama  String
+  periodeTahun Int
+  jabatanId    String
+  jabatan      Jabatan  @relation(fields: [jabatanId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdbyId Int
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
 }
 
 // Tabel Profil dengan submenu
