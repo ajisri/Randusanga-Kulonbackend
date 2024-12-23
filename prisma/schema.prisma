@@ -466,6 +466,7 @@ model Poinsubkategoriankor {
   id           Int         @id @default(autoincrement())
   uuid         String      @default(uuid()) @unique
   name         String
+  url          String?
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
   createdById  String
