@@ -97,14 +97,16 @@ model Jabatan {
 model MasaJabatan {
   id              Int      @id @default(autoincrement())
   uuid            String   @default(uuid()) @unique
-  pejabatNama  String
-  periodeTahun Int
+ mulai        Int
+  selesai      Int?
   jabatanId    String
   jabatan      Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   createdbyId Int
   createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+
+  @@unique([jabatanId, mulai])
 }
 
 // Tabel Profil dengan submenu
