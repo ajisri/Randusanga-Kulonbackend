@@ -995,10 +995,8 @@ export const createPoinsubkategoriankor = [
   check("poinData")
     .isArray({ min: 1 })
     .withMessage("poinData harus berupa array dan tidak boleh kosong"),
-  check("subkategoriData.*.name")
-    .notEmpty()
-    .withMessage("Nama poin harus diisi"),
-  check("url")
+  check("poinData.*.name").notEmpty().withMessage("Nama poin harus diisi"),
+  check("poinData.*.url")
     .optional()
     .isURL()
     .withMessage("URL harus berupa URL yang valid"),
@@ -1017,70 +1015,50 @@ export const createPoinsubkategoriankor = [
     const subkategoriankorId = poinData[0].subkategoriankorId;
 
     try {
-      const result = await prisma.$transaction(async (prisma) => {
-        const createdPoins = [];
-        const uuidsToKeepPoin = new Set();
+      const existingPoins = await prisma.poinsubkategoriankor.findMany({
+        where: { subkategoriankorId },
+        select: { uuid: true },
+      });
 
-        const existingPoins = await prisma.poinsubkategoriankor.findMany({
-          where: { subkategoriankorId },
-        });
-        const existingUuidsPoin = new Set(existingPoins.map((s) => s.uuid));
+      const existingUuidsPoin = new Set(existingPoins.map((poin) => poin.uuid));
+      const uuidsToKeepPoin = new Set();
 
-        for (const poin of poinData) {
-          const { uuid, name, url } = poin;
-          let createdPoin;
+      const operations = poinData.map((poin) => {
+        const { uuid, name, url } = poin;
 
-          if (uuid) {
-            const existingPoin = existingPoins.find((s) => s.uuid === uuid);
-            if (existingPoin) {
-              createdPoin = await prisma.poinsubkategoriankor.update({
-                where: { uuid },
-                data: {
-                  name,
-                  url,
-                  subkategoriankorId,
-                },
-              });
-              uuidsToKeepPoin.add(uuid);
-            } else {
-              throw new Error("Poin tidak ditemukan untuk update");
-            }
-          } else {
-            const count = await prisma.poinsubkategoriankor.count({
-              where: { subkategoriankorId },
-            });
-            createdPoin = await prisma.poinsubkategoriankor.create({
-              data: {
-                name,
-                url,
-                subkategoriankorId,
-                createdById,
-              },
-            });
-          }
-
-          createdPoins.push(createdPoin);
-        }
-
-        // Hapus subkategori yang tidak ada di `subkategoriData`
-        const uuidsToDeletePoin = [...existingUuidsPoin].filter(
-          (uuid) => !uuidsToKeepPoin.has(uuid)
-        );
-        if (uuidsToDeletePoin.length > 0) {
-          await prisma.subkategori.deleteMany({
-            where: {
-              uuid: { in: uuidsToDeletePoin },
-            },
+        if (uuid && existingUuidsPoin.has(uuid)) {
+          uuidsToKeepPoin.add(uuid);
+          return prisma.poinsubkategoriankor.update({
+            where: { uuid },
+            data: { name, url, subkategoriankorId },
+          });
+        } else {
+          return prisma.poinsubkategoriankor.create({
+            data: { name, url, subkategoriankorId, createdById },
           });
         }
-
-        return { createdPoins };
       });
+
+      const uuidsToDeletePoin = [...existingUuidsPoin].filter(
+        (uuid) => !uuidsToKeepPoin.has(uuid)
+      );
+
+      if (uuidsToDeletePoin.length > 0) {
+        operations.push(
+          prisma.poinsubkategoriankor.deleteMany({
+            where: { uuid: { in: uuidsToDeletePoin } },
+          })
+        );
+      }
+
+      const result = await prisma.$transaction(operations);
+
+      const createdPoins = result.filter((res) => res.name); // Ambil hasil create/update
 
       return res.status(200).json({
         message: "Poin berhasil diatur",
-        count: result.createdPoins.length,
-        createdPoins: result.createdPoins,
+        count: createdPoins.length,
+        createdPoins,
       });
     } catch (error) {
       console.error("Error managing Poin:", error);

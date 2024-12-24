@@ -81,8 +81,8 @@ model User{
 }
 
 model Jabatan {
-  id              Int      @id @default(autoincrement())
-  uuid            String   @default(uuid()) @unique
+  id          Int      @id @default(autoincrement())
+  uuid        String   @default(uuid()) @unique
   nama        String
   ringkasan   String?
   tugas       Tugas[]
@@ -97,7 +97,7 @@ model Jabatan {
 model MasaJabatan {
   id              Int      @id @default(autoincrement())
   uuid            String   @default(uuid()) @unique
- mulai        Int
+  mulai        Int
   selesai      Int?
   jabatanId    String
   jabatan      Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
