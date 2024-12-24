@@ -2065,7 +2065,6 @@ export const updateJabatan = async (req, res) => {
 export const deleteJabatan = async (req, res) => {
   const { uuid } = req.params;
   const refreshToken = req.cookies.refreshToken;
-
   try {
     await validateToken(refreshToken);
 
