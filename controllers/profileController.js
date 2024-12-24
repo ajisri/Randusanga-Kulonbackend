@@ -1937,7 +1937,6 @@ export const getJabatanPengunjung = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     await validateToken(refreshToken);
-
     const jabatanList = await prisma.jabatan.findMany({
       include: {
         tugas: true,
