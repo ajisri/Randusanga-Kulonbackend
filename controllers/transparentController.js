@@ -776,9 +776,6 @@ export const getSubkategoriAnkorAdmin = [
 
 export const createSubkategoriAnkor = [
   verifyAdmin,
-  // check("subkategoriankorData")
-  //   .isArray({ min: 1 })
-  //   .withMessage("subkategoriData harus berupa array dan tidak boleh kosong"),
   check("subkategoriankorData.*.name")
     .notEmpty()
     .withMessage("Nama subkategori harus diisi"),
@@ -792,29 +789,49 @@ export const createSubkategoriAnkor = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, kategoriankorId } = req.body;
+    const subkategoriankorData = req.body.subkategoriankorData;
     const createdById = req.administratorId;
 
     try {
-      const existingSubkategoriAnkor = await prisma.subkategoriankor.findFirst({
-        where: { name },
-      });
+      // Optimalkan query untuk menemukan subkategori yang sudah ada
+      const existingSubkategoriNames = new Set(
+        (
+          await prisma.subkategoriankor.findMany({
+            where: {
+              name: { in: subkategoriankorData.map((data) => data.name) },
+            },
+            select: { name: true },
+          })
+        ).map((subkategori) => subkategori.name)
+      );
 
-      if (existingSubkategoriAnkor) {
+      // Filter data yang tidak duplikat
+      const newSubkategoriData = subkategoriankorData.filter(
+        (data) => !existingSubkategoriNames.has(data.name)
+      );
+
+      if (newSubkategoriData.length === 0) {
         return res.status(400).json({
-          msg: "Subkategori Parameter Ankor sudah ada, tidak bisa membuat data baru",
+          msg: "Semua subkategori yang diberikan sudah ada.",
         });
       }
 
-      const newSubkategoriAnkor = await prisma.subkategoriankor.create({
-        data: { name, kategoriankorId, createdById },
+      // Batch insert untuk subkategori baru
+      const newSubkategoriAnkor = await prisma.subkategoriankor.createMany({
+        data: newSubkategoriData.map((data) => ({
+          name: data.name,
+          kategoriankorId: data.kategoriankorId,
+          createdById,
+        })),
+        skipDuplicates: true, // Hindari error jika ada data duplikat
       });
 
       return res.status(201).json({
-        msg: "SubKategori Parameter Ankor dibuat dengan sukses",
-        ankor: newSubkategoriAnkor,
+        msg: `${newSubkategoriAnkor.count} Subkategori Parameter Ankor dibuat dengan sukses`,
+        createdCount: newSubkategoriAnkor.count,
       });
     } catch (error) {
+      console.error("Error creating Subkategori:", error);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server",
         error: error.message,
