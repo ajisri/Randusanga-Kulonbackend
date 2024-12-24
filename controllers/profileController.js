@@ -1914,6 +1914,143 @@ export const deletePotensiWisata = async (req, res) => {
   }
 };
 
+//jabatan
+export const getJabatan = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const administrator = await prisma.administrator.findUnique({
+      where: { refresh_token: refreshToken },
+    });
+
+    if (!administrator) {
+      return res.status(401).json({ msg: "Pengguna tidak ditemukan" });
+    }
+
+    if (administrator.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+
+    const jabatanList = await prisma.jabatan.findMany({
+      include: {
+        tugas: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+        fungsi: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+        masaJabatan: {
+          select: {
+            id: true,
+            mulai: true,
+            selesai: true,
+          },
+        },
+        createdBy: {
+          select: {
+            name: true, // Mengambil nama dari administrator yang membuat
+          },
+        },
+      },
+    });
+
+    // Logika untuk mengembalikan array jabatanList jika ada data, atau objek kosong jika jabatanList kosong
+    if (jabatanList.length === 0) {
+      return res.status(200).json({ jabatan: {} });
+    }
+
+    res.status(200).json({ jabatan: jabatanList });
+  } catch (error) {
+    console.error("Error saat mengambil data jabatan:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
+export const createJabatan = async (req, res) => {
+  const { nama, ringkasan, tugas, fungsi, masaJabatan } = req.body;
+
+  const refreshToken = req.cookies.refreshToken;
+  let administrator;
+
+  try {
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    administrator = await prisma.administrator.findUnique({
+      where: { id: decoded.administratorId },
+    });
+
+    if (!administrator || administrator.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+  } catch (error) {
+    return res.status(401).json({ msg: "Token tidak valid" });
+  }
+
+  try {
+    const result = await prisma.$transaction(async (prisma) => {
+      const newJabatan = await prisma.jabatan.create({
+        data: {
+          nama,
+          ringkasan,
+          createdbyId: administrator.id,
+        },
+      });
+
+      if (tugas?.length > 0) {
+        const tugasData = tugas.map((t) => ({
+          content: t,
+          jabatanId: newJabatan.uuid,
+        }));
+        await prisma.tugas.createMany({ data: tugasData });
+      }
+
+      if (fungsi?.length > 0) {
+        const fungsiData = fungsi.map((f) => ({
+          content: f,
+          jabatanId: newJabatan.uuid,
+        }));
+        await prisma.fungsi.createMany({ data: fungsiData });
+      }
+
+      if (masaJabatan?.length > 0) {
+        for (const masa of masaJabatan) {
+          await prisma.masaJabatan.create({
+            data: {
+              mulai: masa.mulai,
+              selesai: masa.selesai,
+              jabatanId: newJabatan.uuid,
+              createdbyId: administrator.id,
+            },
+          });
+        }
+      }
+
+      return newJabatan;
+    });
+
+    res.status(201).json({ msg: "Jabatan berhasil dibuat", jabatan: result });
+  } catch (error) {
+    console.error("Error saat membuat jabatan:", error);
+    res
+      .status(500)
+      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
+  }
+};
+
 //lembaga
 // Mendapatkan data lembaga untuk pengunjung
 export const getLembagapengunjung = async (req, res) => {

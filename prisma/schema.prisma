@@ -84,7 +84,7 @@ model Jabatan {
   id          Int      @id @default(autoincrement())
   uuid        String   @default(uuid()) @unique
   nama        String
-  ringkasan   String?
+  ringkasan   String @db.LongText
   tugas       Tugas[]
   fungsi      Fungsi[]
   masaJabatan MasaJabatan[]
