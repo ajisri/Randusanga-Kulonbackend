@@ -23,6 +23,11 @@ import {
   createLembaga,
   updateLembaga,
   deleteLembaga,
+  getJabatanpengunjung,
+  getJabatan,
+  createJabatan,
+  updateJabatan,
+  deleteJabatan,
   getDemografipengunjung,
   getDemografiadmin,
   createDemografi,
@@ -243,5 +248,11 @@ router.delete(
   superOnly,
   deletePotensiWisata
 );
+
+router.get("/jabatanpengunjung", getJabatanpengunjung);
+router.get("/jabatan", verifyToken, superOnly, getJabatan);
+router.post("/cjabatan", verifyToken, superOnly, createJabatan);
+router.put("/ujabatan/:uuid", verifyToken, superOnly, updateJabatan);
+router.delete("/jabatan/:uuid", verifyToken, superOnly, deleteJabatan);
 
 export default router;

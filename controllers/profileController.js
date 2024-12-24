@@ -1915,139 +1915,169 @@ export const deletePotensiWisata = async (req, res) => {
 };
 
 //jabatan
+const validateToken = async (refreshToken) => {
+  if (!refreshToken) {
+    throw { status: 401, msg: "Token tidak ditemukan" };
+  }
+
+  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  const administrator = await prisma.administrator.findUnique({
+    where: { id: decoded.administratorId },
+  });
+
+  if (!administrator) {
+    throw { status: 403, msg: "Akses ditolak" };
+  }
+
+  return administrator;
+};
+
+// Get all Jabatan
 export const getJabatan = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      return res.status(401).json({ msg: "Token tidak ditemukan" });
-    }
-
-    const administrator = await prisma.administrator.findUnique({
-      where: { refresh_token: refreshToken },
-    });
-
-    if (!administrator) {
-      return res.status(401).json({ msg: "Pengguna tidak ditemukan" });
-    }
-
-    if (administrator.role !== "administrator") {
-      return res.status(403).json({ msg: "Akses ditolak" });
-    }
+    await validateToken(refreshToken);
 
     const jabatanList = await prisma.jabatan.findMany({
       include: {
-        tugas: {
-          select: {
-            id: true,
-            content: true,
-          },
-        },
-        fungsi: {
-          select: {
-            id: true,
-            content: true,
-          },
-        },
-        masaJabatan: {
-          select: {
-            id: true,
-            mulai: true,
-            selesai: true,
-          },
-        },
-        createdBy: {
-          select: {
-            name: true, // Mengambil nama dari administrator yang membuat
-          },
-        },
+        tugas: true,
+        fungsi: true,
+        masaJabatan: true,
+        createdBy: { select: { name: true } },
       },
     });
 
-    // Logika untuk mengembalikan array jabatanList jika ada data, atau objek kosong jika jabatanList kosong
-    if (jabatanList.length === 0) {
-      return res.status(200).json({ jabatan: {} });
-    }
-
-    res.status(200).json({ jabatan: jabatanList });
+    res.status(200).json(jabatanList);
   } catch (error) {
     console.error("Error saat mengambil data jabatan:", error);
-    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+    const status = error.status || 500;
+    res
+      .status(status)
+      .json({ msg: error.msg || "Terjadi kesalahan pada server" });
   }
 };
 
+// Create Jabatan
 export const createJabatan = async (req, res) => {
   const { nama, ringkasan, tugas, fungsi, masaJabatan } = req.body;
-
   const refreshToken = req.cookies.refreshToken;
-  let administrator;
 
   try {
-    if (!refreshToken) {
-      return res.status(401).json({ msg: "Token tidak ditemukan" });
-    }
+    const administrator = await validateToken(refreshToken);
 
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-    administrator = await prisma.administrator.findUnique({
-      where: { id: decoded.administratorId },
-    });
-
-    if (!administrator || administrator.role !== "administrator") {
-      return res.status(403).json({ msg: "Akses ditolak" });
-    }
-  } catch (error) {
-    return res.status(401).json({ msg: "Token tidak valid" });
-  }
-
-  try {
-    const result = await prisma.$transaction(async (prisma) => {
-      const newJabatan = await prisma.jabatan.create({
-        data: {
-          nama,
-          ringkasan,
-          createdbyId: administrator.id,
-        },
+    const result = await prisma.$transaction(async (tx) => {
+      const jabatan = await tx.jabatan.create({
+        data: { nama, ringkasan, createdbyId: administrator.id },
       });
 
-      if (tugas?.length > 0) {
-        const tugasData = tugas.map((t) => ({
-          content: t,
-          jabatanId: newJabatan.uuid,
-        }));
-        await prisma.tugas.createMany({ data: tugasData });
+      if (tugas) {
+        await tx.tugas.create({
+          data: { content: tugas.content, jabatanId: jabatan.uuid },
+        });
       }
 
-      if (fungsi?.length > 0) {
-        const fungsiData = fungsi.map((f) => ({
-          content: f,
-          jabatanId: newJabatan.uuid,
-        }));
-        await prisma.fungsi.createMany({ data: fungsiData });
+      if (fungsi) {
+        await tx.fungsi.create({
+          data: { content: fungsi.content, jabatanId: jabatan.uuid },
+        });
       }
 
-      if (masaJabatan?.length > 0) {
-        for (const masa of masaJabatan) {
-          await prisma.masaJabatan.create({
-            data: {
-              mulai: masa.mulai,
-              selesai: masa.selesai,
-              jabatanId: newJabatan.uuid,
-              createdbyId: administrator.id,
-            },
-          });
-        }
+      if (masaJabatan) {
+        await tx.masaJabatan.create({
+          data: {
+            mulai: masaJabatan.mulai,
+            selesai: masaJabatan.selesai,
+            jabatanId: jabatan.uuid,
+          },
+        });
       }
 
-      return newJabatan;
+      return jabatan;
     });
 
-    res.status(201).json({ msg: "Jabatan berhasil dibuat", jabatan: result });
+    res.status(201).json({ message: "Jabatan berhasil dibuat", data: result });
   } catch (error) {
     console.error("Error saat membuat jabatan:", error);
+    const status = error.status || 500;
     res
-      .status(500)
-      .json({ msg: "Terjadi kesalahan pada server", error: error.message });
+      .status(status)
+      .json({ msg: error.msg || "Terjadi kesalahan pada server" });
+  }
+};
+
+export const updateJabatan = async (req, res) => {
+  const { uuid } = req.params;
+  const { nama, ringkasan, tugas, fungsi, masaJabatan } = req.body;
+  const refreshToken = req.cookies.refreshToken;
+
+  try {
+    const administrator = await validateToken(refreshToken);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existingJabatan = await tx.jabatan.findUnique({ where: { uuid } });
+      if (!existingJabatan)
+        throw { status: 404, msg: "Jabatan tidak ditemukan" };
+
+      // Update Jabatan
+      const updatedJabatan = await tx.jabatan.update({
+        where: { uuid },
+        data: { nama, ringkasan },
+      });
+
+      // Tambahkan data baru langsung
+      if (tugas) {
+        await tx.tugas.create({
+          data: { content: tugas.content, jabatanId: uuid },
+        });
+      }
+
+      if (fungsi) {
+        await tx.fungsi.create({
+          data: { content: fungsi.content, jabatanId: uuid },
+        });
+      }
+
+      if (masaJabatan) {
+        await tx.masaJabatan.create({
+          data: {
+            mulai: masaJabatan.mulai,
+            selesai: masaJabatan.selesai,
+            jabatanId: uuid,
+          },
+        });
+      }
+
+      return updatedJabatan;
+    });
+
+    res
+      .status(200)
+      .json({ message: "Jabatan berhasil diperbarui", data: result });
+  } catch (error) {
+    console.error("Error saat memperbarui jabatan:", error);
+    const status = error.status || 500;
+    res
+      .status(status)
+      .json({ msg: error.msg || "Terjadi kesalahan pada server" });
+  }
+};
+
+export const deleteJabatan = async (req, res) => {
+  const { uuid } = req.params;
+  const refreshToken = req.cookies.refreshToken;
+
+  try {
+    await validateToken(refreshToken);
+
+    await prisma.jabatan.delete({ where: { uuid } }); // Hanya ini yang diperlukan karena onDelete: Cascade
+
+    res.status(200).json({ message: "Jabatan berhasil dihapus" });
+  } catch (error) {
+    console.error("Error saat menghapus jabatan:", error);
+    const status = error.status || 500;
+    res
+      .status(status)
+      .json({ msg: error.msg || "Terjadi kesalahan pada server" });
   }
 };
 
