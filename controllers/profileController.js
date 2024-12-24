@@ -1933,6 +1933,30 @@ const validateToken = async (refreshToken) => {
 };
 
 // Get all Jabatan
+export const getJabatanPengunjung = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    await validateToken(refreshToken);
+
+    const jabatanList = await prisma.jabatan.findMany({
+      include: {
+        tugas: true,
+        fungsi: true,
+        masaJabatan: true,
+        createdBy: { select: { name: true } },
+      },
+    });
+
+    res.status(200).json(jabatanList);
+  } catch (error) {
+    console.error("Error saat mengambil data jabatan:", error);
+    const status = error.status || 500;
+    res
+      .status(status)
+      .json({ msg: error.msg || "Terjadi kesalahan pada server" });
+  }
+};
+
 export const getJabatan = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
