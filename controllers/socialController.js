@@ -572,7 +572,14 @@ export const createGaleri = async (req, res) => {
   const { title, content, status } = req.body;
 
   const file = req.file;
-
+  if (
+    file &&
+    !["image/jpeg", "image/png", "image/jpg"].includes(file.mimetype)
+  ) {
+    return res
+      .status(400)
+      .json({ msg: "File harus berupa gambar dengan format JPEG/PNG" });
+  }
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
