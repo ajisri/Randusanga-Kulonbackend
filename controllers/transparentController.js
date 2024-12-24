@@ -850,10 +850,6 @@ export const updateSubkategoriAnkor = [
     .optional()
     .notEmpty()
     .withMessage("Nama subkategori harus diisi"),
-  check("url")
-    .optional()
-    .isURL()
-    .withMessage("URL harus berupa URL yang valid"),
 
   async (req, res) => {
     console.log(
@@ -867,7 +863,7 @@ export const updateSubkategoriAnkor = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { uuid, name, url } = req.body; // Dapatkan data dari body request
+    const { uuid, name, kategoriankorId } = req.body; // Dapatkan data dari body request
 
     try {
       // Cek apakah subkategoriAnkor dengan UUID tersebut ada
@@ -888,7 +884,8 @@ export const updateSubkategoriAnkor = [
         where: { uuid },
         data: {
           name: name || existingSubkategoriAnkor.name, // Menggunakan nama lama jika tidak diubah
-          url: url || existingSubkategoriAnkor.url, // Menggunakan URL lama jika tidak diubah
+          kategoriankorId:
+            kategoriankorId || existingSubkategoriAnkor.kategoriankorId, // Menggunakan idkategori lama jika tidak diubah
           updated_at: new Date(),
         },
       });
