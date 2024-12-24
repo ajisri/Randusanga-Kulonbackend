@@ -852,57 +852,52 @@ export const updateSubkategoriAnkor = [
     .withMessage("Nama subkategori harus diisi"),
 
   async (req, res) => {
-    console.log(
-      "=== DEBUG: Request Payload ===",
-      JSON.stringify(req.body, null, 2)
-    );
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error("=== DEBUG: Validation Errors ===", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { uuid, name, kategoriankorId } = req.body; // Dapatkan data dari body request
 
     try {
-      // Cek apakah subkategoriAnkor dengan UUID tersebut ada
-      const existingSubkategoriAnkor = await prisma.subkategoriankor.findUnique(
-        {
-          where: { uuid },
+      // Gunakan prisma.$transaction untuk efisiensi query
+      const result = await prisma.$transaction(async (prisma) => {
+        // Cek apakah subkategoriAnkor dengan UUID tersebut ada
+        const existingSubkategoriAnkor =
+          await prisma.subkategoriankor.findUnique({
+            where: { uuid },
+          });
+
+        if (!existingSubkategoriAnkor) {
+          throw new Error(
+            `SubkategoriAnkor dengan UUID ${uuid} tidak ditemukan.`
+          );
         }
-      );
 
-      if (!existingSubkategoriAnkor) {
-        return res.status(404).json({
-          msg: `SubkategoriAnkor dengan UUID ${uuid} tidak ditemukan.`,
+        // Update data
+        return await prisma.subkategoriankor.update({
+          where: { uuid },
+          data: {
+            name: name || existingSubkategoriAnkor.name, // Menggunakan nama lama jika tidak diubah
+            kategoriankorId:
+              kategoriankorId || existingSubkategoriAnkor.kategoriankorId, // Menggunakan idkategori lama jika tidak diubah
+            updated_at: new Date(),
+          },
         });
-      }
-
-      // Update data
-      const updatedSubkategoriAnkor = await prisma.subkategoriankor.update({
-        where: { uuid },
-        data: {
-          name: name || existingSubkategoriAnkor.name, // Menggunakan nama lama jika tidak diubah
-          kategoriankorId:
-            kategoriankorId || existingSubkategoriAnkor.kategoriankorId, // Menggunakan idkategori lama jika tidak diubah
-          updated_at: new Date(),
-        },
       });
-
-      console.log(
-        "=== DEBUG: SubkategoriAnkor Updated ===",
-        updatedSubkategoriAnkor
-      );
 
       return res.status(200).json({
         message: "SubkategoriAnkor berhasil diperbarui",
-        data: updatedSubkategoriAnkor,
+        data: result,
       });
     } catch (error) {
-      console.error("=== DEBUG: Error managing SubkategoriAnkor ===");
-      console.error(error);
+      if (error.message.includes("tidak ditemukan")) {
+        return res.status(404).json({
+          msg: error.message,
+        });
+      }
 
+      console.error("Error updating SubkategoriAnkor:", error);
       return res.status(500).json({
         msg: "Terjadi kesalahan pada server.",
         detail: error.message,
