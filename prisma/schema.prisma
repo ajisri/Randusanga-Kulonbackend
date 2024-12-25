@@ -98,7 +98,7 @@ model MasaJabatan {
   id              Int      @id @default(autoincrement())
   uuid            String   @default(uuid()) @unique
   mulai        Int
-  selesai      Int?
+  selesai      Int
   jabatanId    String
   jabatan      Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
   createdAt    DateTime @default(now())

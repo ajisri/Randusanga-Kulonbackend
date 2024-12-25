@@ -1933,10 +1933,8 @@ const validateToken = async (refreshToken) => {
 };
 
 // Get all Jabatan
-export const getJabatanPengunjung = async (req, res) => {
+export const getJabatanpengunjung = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
-    await validateToken(refreshToken);
     const jabatanList = await prisma.jabatan.findMany({
       include: {
         tugas: true,
@@ -1982,7 +1980,9 @@ export const getJabatan = async (req, res) => {
 
 // Create Jabatan
 export const createJabatan = async (req, res) => {
-  const { nama, ringkasan, tugas, fungsi, masaJabatan } = req.body;
+  const { nama, ringkasan, tugas, fungsi, mulai, selesai } = req.body;
+  console.log("Payload diterima:", req.body);
+
   const refreshToken = req.cookies.refreshToken;
 
   try {
@@ -1992,28 +1992,44 @@ export const createJabatan = async (req, res) => {
       const jabatan = await tx.jabatan.create({
         data: { nama, ringkasan, createdbyId: administrator.id },
       });
+      console.log("Jabatan berhasil dibuat:", jabatan);
+      console.log("UUID Jabatan:", jabatan.uuid, "Tipe:", typeof jabatan.uuid);
 
       if (tugas) {
         await tx.tugas.create({
-          data: { content: tugas.content, jabatanId: jabatan.uuid },
+          data: { content: tugas, jabatanId: jabatan.uuid },
         });
       }
+      console.log("tugas berhasil dibuat:", tugas);
 
       if (fungsi) {
         await tx.fungsi.create({
-          data: { content: fungsi.content, jabatanId: jabatan.uuid },
+          data: { content: fungsi, jabatanId: jabatan.uuid },
         });
       }
+      console.log("Fungsi berhasil dibuat:", fungsi);
 
+      const masaJabatan = mulai && selesai ? { mulai, selesai } : null;
+      console.log("Data untuk masaJabatan.create:", {
+        mulai: masaJabatan.mulai,
+        selesai: masaJabatan.selesai,
+        jabatanId: jabatan.uuid,
+      });
       if (masaJabatan) {
         await tx.masaJabatan.create({
           data: {
             mulai: masaJabatan.mulai,
             selesai: masaJabatan.selesai,
-            jabatanId: jabatan.uuid,
+            jabatan: {
+              connect: { uuid: jabatan.uuid }, // Menggunakan connect
+            },
+            createdBy: {
+              connect: { id: administrator.id }, // Menggunakan connect untuk menghubungkan Administrator
+            },
           },
         });
       }
+      console.log("masa Jabatan berhasil dibuat:", masaJabatan);
 
       return jabatan;
     });
