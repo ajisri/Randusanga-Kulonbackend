@@ -88,6 +88,8 @@ model Jabatan {
   tugas       Tugas[]
   fungsi      Fungsi[]
   masaJabatan MasaJabatan[]
+  pemegangId  String?          // Referensi ke pemegang jabatan
+  pemegang    Demographics? @relation(fields: [pemegangId], references: [uuid])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdbyId Int
@@ -97,16 +99,15 @@ model Jabatan {
 model MasaJabatan {
   id              Int      @id @default(autoincrement())
   uuid            String   @default(uuid()) @unique
-  mulai        Int
-  selesai      Int
-  jabatanId    String
-  jabatan      Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  createdbyId Int
-  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+  mulai           Int
+  selesai         Int
+  jabatanId       String
+  jabatan         Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdbyId     Int
+  createdBy       Administrator? @relation(fields: [createdbyId], references: [id])
 
-  @@unique([jabatanId, mulai])
 }
 
 model Tugas {
@@ -289,6 +290,7 @@ model Demographics {
 
   @@index([nik])
   Anggota Anggota[]
+  Jabatan Jabatan[]
 }
 
 // Tabel Agama untuk normalisasi data

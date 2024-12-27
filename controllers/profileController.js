@@ -1964,6 +1964,10 @@ export const getJabatan = async (req, res) => {
         tugas: true,
         fungsi: true,
         masaJabatan: true,
+        pemegang: {
+          // Mengambil data dari tabel Demographics
+          select: { name: true }, // Hanya ambil nama pemegang
+        },
         createdBy: { select: { name: true } },
       },
     });
@@ -1980,9 +1984,8 @@ export const getJabatan = async (req, res) => {
 
 // Create Jabatan
 export const createJabatan = async (req, res) => {
-  const { nama, ringkasan, tugas, fungsi, mulai, selesai } = req.body;
-  console.log("Payload diterima:", req.body);
-
+  const { nama, pemegangId, ringkasan, tugas, fungsi, mulai, selesai } =
+    req.body;
   const refreshToken = req.cookies.refreshToken;
 
   try {
@@ -1990,31 +1993,20 @@ export const createJabatan = async (req, res) => {
 
     const result = await prisma.$transaction(async (tx) => {
       const jabatan = await tx.jabatan.create({
-        data: { nama, ringkasan, createdbyId: administrator.id },
+        data: { nama, ringkasan, pemegangId, createdbyId: administrator.id },
       });
-      console.log("Jabatan berhasil dibuat:", jabatan);
-      console.log("UUID Jabatan:", jabatan.uuid, "Tipe:", typeof jabatan.uuid);
-
       if (tugas) {
         await tx.tugas.create({
           data: { content: tugas, jabatanId: jabatan.uuid },
         });
       }
-      console.log("tugas berhasil dibuat:", tugas);
-
       if (fungsi) {
         await tx.fungsi.create({
           data: { content: fungsi, jabatanId: jabatan.uuid },
         });
       }
-      console.log("Fungsi berhasil dibuat:", fungsi);
-
       const masaJabatan = mulai && selesai ? { mulai, selesai } : null;
-      console.log("Data untuk masaJabatan.create:", {
-        mulai: masaJabatan.mulai,
-        selesai: masaJabatan.selesai,
-        jabatanId: jabatan.uuid,
-      });
+
       if (masaJabatan) {
         await tx.masaJabatan.create({
           data: {
@@ -2046,7 +2038,8 @@ export const createJabatan = async (req, res) => {
 
 export const updateJabatan = async (req, res) => {
   const { uuid } = req.params;
-  const { nama, ringkasan, tugas, fungsi, masaJabatan } = req.body;
+  const { nama, pemegangId, ringkasan, tugas, fungsi, mulai, selesai } =
+    req.body;
   const refreshToken = req.cookies.refreshToken;
 
   try {
@@ -2060,30 +2053,108 @@ export const updateJabatan = async (req, res) => {
       // Update Jabatan
       const updatedJabatan = await tx.jabatan.update({
         where: { uuid },
-        data: { nama, ringkasan },
+        data: { nama, ringkasan, pemegangId, createdbyId: administrator.id },
       });
 
-      // Tambahkan data baru langsung
       if (tugas) {
-        await tx.tugas.create({
-          data: { content: tugas.content, jabatanId: uuid },
+        const existingTugas = await tx.tugas.findFirst({
+          where: {
+            jabatanId: existingJabatan.uuid,
+          },
         });
+
+        if (existingTugas) {
+          if (existingTugas.content !== tugas) {
+            // Periksa apakah konten berbeda
+            await tx.tugas.update({
+              where: { id: existingTugas.id },
+              data: { content: tugas },
+            });
+          }
+        } else {
+          await tx.tugas.create({
+            data: { content: tugas, jabatanId: existingJabatan.uuid },
+          });
+        }
       }
 
       if (fungsi) {
-        await tx.fungsi.create({
-          data: { content: fungsi.content, jabatanId: uuid },
-        });
-      }
-
-      if (masaJabatan) {
-        await tx.masaJabatan.create({
-          data: {
-            mulai: masaJabatan.mulai,
-            selesai: masaJabatan.selesai,
-            jabatanId: uuid,
+        const existingFungsi = await tx.fungsi.findFirst({
+          where: {
+            jabatanId: existingJabatan.uuid,
           },
         });
+
+        if (existingFungsi) {
+          if (existingFungsi.content !== fungsi) {
+            // Periksa apakah konten berbeda
+            await tx.fungsi.update({
+              where: { id: existingFungsi.id },
+              data: { content: fungsi },
+            });
+          }
+        } else {
+          await tx.fungsi.create({
+            data: { content: fungsi, jabatanId: existingJabatan.uuid },
+          });
+        }
+      }
+
+      const masaJabatan = mulai && selesai ? { mulai, selesai } : null;
+
+      if (masaJabatan) {
+        // Validasi nama jabatan dan tahun mulai
+        const duplicateMasaJabatan = await tx.masaJabatan.findFirst({
+          where: {
+            mulai: masaJabatan.mulai,
+            jabatan: {
+              nama: nama, // Nama jabatan dari request body
+            },
+          },
+          include: {
+            jabatan: true, // Sertakan relasi jabatan untuk memverifikasi nama
+          },
+        });
+
+        if (
+          duplicateMasaJabatan &&
+          duplicateMasaJabatan.jabatan.uuid !== existingJabatan.uuid
+        ) {
+          throw {
+            status: 400,
+            msg: "Jabatan dengan nama dan tahun mulai tersebut sudah ada",
+          };
+        }
+
+        // Periksa apakah masa jabatan sudah ada untuk jabatan saat ini
+        const existingMasaJabatan = await tx.masaJabatan.findFirst({
+          where: { jabatanId: existingJabatan.uuid },
+        });
+
+        if (existingMasaJabatan) {
+          // Update data jika sudah ada
+          await tx.masaJabatan.update({
+            where: { id: existingMasaJabatan.id },
+            data: {
+              mulai: masaJabatan.mulai,
+              selesai: masaJabatan.selesai,
+            },
+          });
+        } else {
+          // Jika belum ada, buat data baru
+          await tx.masaJabatan.create({
+            data: {
+              mulai: masaJabatan.mulai,
+              selesai: masaJabatan.selesai,
+              jabatan: {
+                connect: { uuid: existingJabatan.uuid },
+              },
+              createdBy: {
+                connect: { id: administrator.id },
+              },
+            },
+          });
+        }
       }
 
       return updatedJabatan;
