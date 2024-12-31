@@ -1940,6 +1940,10 @@ export const getJabatanpengunjung = async (req, res) => {
         tugas: true,
         fungsi: true,
         masaJabatan: true,
+        pemegang: {
+          // Mengambil data dari tabel Demographics
+          select: { name: true, file_url: true }, // Hanya ambil nama pemegang
+        },
         createdBy: { select: { name: true } },
       },
     });
