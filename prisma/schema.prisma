@@ -65,6 +65,7 @@ model Administrator {
   Poinsubkategoriankor Poinsubkategoriankor[]
   Jabatan Jabatan[]
   MasaJabatan MasaJabatan[]
+  Kehadiran Kehadiran[]
 }
 
 model User{
@@ -90,6 +91,19 @@ model Jabatan {
   masaJabatan MasaJabatan[]
   pemegangId  String?          // Referensi ke pemegang jabatan
   pemegang    Demographics? @relation(fields: [pemegangId], references: [uuid])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdbyId Int
+  createdBy     Administrator? @relation(fields: [createdbyId], references: [id])
+
+  Kehadiran Kehadiran[]
+}
+
+model Kehadiran {
+  id          Int      @id @default(autoincrement())
+  jabatanId       String
+  jabatan         Jabatan  @relation(fields: [jabatanId], references: [uuid], onDelete: Cascade)
+  statusHadir String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdbyId Int
