@@ -1944,6 +1944,9 @@ export const getJabatanpengunjung = async (req, res) => {
           // Mengambil data dari tabel Demographics
           select: { name: true, file_url: true }, // Hanya ambil nama pemegang
         },
+        Kehadiran: {
+          select: { id: true, statusHadir: true, createdAt: true },
+        },
         createdBy: { select: { name: true } },
       },
     });
@@ -1973,6 +1976,9 @@ export const getJabatan = async (req, res) => {
           select: { name: true }, // Hanya ambil nama pemegang
         },
         createdBy: { select: { name: true } },
+        Kehadiran: {
+          select: { id: true, statusHadir: true, createdAt: true },
+        },
       },
     });
 
@@ -2169,6 +2175,67 @@ export const updateJabatan = async (req, res) => {
       .json({ message: "Jabatan berhasil diperbarui", data: result });
   } catch (error) {
     console.error("Error saat memperbarui jabatan:", error);
+    const status = error.status || 500;
+    res
+      .status(status)
+      .json({ msg: error.msg || "Terjadi kesalahan pada server" });
+  }
+};
+
+export const updateKehadiran = async (req, res) => {
+  const { uuid } = req.params; // UUID jabatan
+  const { statusHadir } = req.body; // Status baru ("Hadir" atau "Tidak Hadir")
+  const refreshToken = req.cookies.refreshToken;
+
+  try {
+    // Validasi token administrator
+    const administrator = await validateToken(refreshToken);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Periksa apakah jabatan dengan UUID tersebut ada
+      const existingJabatan = await tx.jabatan.findUnique({
+        where: { uuid },
+      });
+
+      if (!existingJabatan) {
+        throw { status: 404, msg: "Jabatan tidak ditemukan" };
+      }
+
+      // Periksa apakah data kehadiran sudah ada untuk jabatan ini
+      const existingKehadiran = await tx.kehadiran.findFirst({
+        where: { jabatanId: uuid },
+      });
+
+      if (existingKehadiran) {
+        // Update status kehadiran jika sudah ada
+        return await tx.kehadiran.update({
+          where: { id: existingKehadiran.id },
+          data: {
+            statusHadir,
+            createdbyId: administrator.id,
+          },
+        });
+      } else {
+        // Jika belum ada, buat data baru
+        return await tx.kehadiran.create({
+          data: {
+            statusHadir,
+            jabatan: {
+              connect: { uuid },
+            },
+            createdBy: {
+              connect: { id: administrator.id },
+            },
+          },
+        });
+      }
+    });
+
+    res
+      .status(200)
+      .json({ message: "Status kehadiran berhasil diperbarui", data: result });
+  } catch (error) {
+    console.error("Error saat memperbarui kehadiran:", error);
     const status = error.status || 500;
     res
       .status(status)
