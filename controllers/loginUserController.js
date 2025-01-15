@@ -71,7 +71,7 @@ export const Login = async (req, res) => {
       const accessToken = jwt.sign(
         { administratorId, name, username, role },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "10s" }
+        { expiresIn: "5m" }
       );
 
       const refreshToken = jwt.sign(
@@ -118,7 +118,7 @@ export const Login = async (req, res) => {
     const accessToken = jwt.sign(
       { userId, name, username, role },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "10s" }
+      { expiresIn: "5m" }
     );
 
     const refreshToken = jwt.sign(
