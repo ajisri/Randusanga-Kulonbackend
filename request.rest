@@ -12,11 +12,24 @@ Content-Type: application/json
     "role": "administrator"
 }
 
+POST http://localhost:8080/register
+Content-Type: application/json
+
+{
+    "name": "admin",
+    "username": "administrator",
+    "email": "mail@gmail.com",
+    "password": "123",
+    "confpassword": "123",
+    "refresh_token": "",
+    "role": "administrator"
+}
+
 ###
 GET http://localhost:8080/jabatanpengunjung
 
 ###
-POST https://randusanga-kulonbackend-production.up.railway.app/login
+POST http://localhost:8080/login
 Content-Type: application/json
 
 {

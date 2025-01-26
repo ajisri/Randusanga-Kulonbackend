@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 import jwt from "jsonwebtoken";
 import { check, body, validationResult } from "express-validator";
+import isURL from "validator/lib/isURL.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -790,6 +791,15 @@ export const createSubkategoriAnkor = [
     }
 
     const subkategoriankorData = req.body.subkategoriankorData;
+    console.log("Received request body:", subkategoriankorData);
+    if (
+      !Array.isArray(subkategoriankorData) ||
+      subkategoriankorData.length === 0
+    ) {
+      return res.status(400).json({
+        msg: "Data subkategoriankorData harus berupa array dan tidak boleh kosong",
+      });
+    }
     const createdById = req.administratorId;
 
     try {
@@ -857,7 +867,8 @@ export const updateSubkategoriAnkor = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { uuid, name, kategoriankorId } = req.body; // Dapatkan data dari body request
+    const { subkategoriankorData } = req.body; // Mengambil data dari array
+    const { uuid, name, kategoriankorId } = subkategoriankorData[0]; // Ambil data pertama dalam array
 
     try {
       // Gunakan prisma.$transaction untuk efisiensi query
@@ -1007,7 +1018,19 @@ export const createPoinsubkategoriankor = [
   check("poinData.*.name").notEmpty().withMessage("Nama poin harus diisi"),
   check("poinData.*.url")
     .optional()
-    .isURL()
+    .custom((value) => {
+      // Jika value ada, kita cek apakah itu URL atau string biasa
+      if (value) {
+        // Jika URL, cek apakah valid
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+          if (!isURL(value, { require_tld: false })) {
+            // Menambahkan opsi untuk memperbolehkan query string
+            throw new Error("URL harus berupa URL yang valid");
+          }
+        }
+      }
+      return true;
+    })
     .withMessage("URL harus berupa URL yang valid"),
   check("poinData.*.subkategoriankorId")
     .isUUID()
