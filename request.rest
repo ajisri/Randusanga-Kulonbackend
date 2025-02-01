@@ -1,5 +1,5 @@
-# POST https://randusanga-kulonbackend-production.up.railway.app/register
-POST http://localhost:8080/register
+###
+POST https://randusanga-kulonbackend-production-fa8c.up.railway.app/register
 Content-Type: application/json
 
 {
@@ -38,7 +38,7 @@ Content-Type: application/json
 }
 
 ###
-GET https://randusanga-kulonbackend-production.up.railway.app/token
+GET https://randusanga-kulonbackend-production-fa8c.up.railway.app/token
 
 ###
 //get user
