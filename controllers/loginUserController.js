@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 
 export const Register = async (req, res) => {
   const { name, username, email, password, confpassword, role } = req.body;
+  console.log(req.body);
   if (name == "") return res.status(404).json({ msg: "name is empty" });
   if (username == "") return res.status(404).json({ msg: "username is empty" });
   if (email == "") return res.status(404).json({ msg: "email is empty" });
