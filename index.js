@@ -26,7 +26,7 @@ app.use(
   cors({
     // origin: "http://localhost:3000",
     origin: "https://randusanga-kulon.vercel.app",
-    // credentials: true,
+    credentials: true,
   })
 );
 app.use(express.json());
