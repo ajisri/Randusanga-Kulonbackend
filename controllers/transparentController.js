@@ -1103,7 +1103,7 @@ export const createPoinsubkategoriankor = [
 export const getApbdPengunjung = async (req, res) => {
   try {
     // Ambil data dari tabel ProdukHukum
-    const apbdp = await prisma.Apbd.findMany({
+    const apbdp = await prisma.apbd.findMany({
       include: {
         createdBy: {
           select: {
@@ -1215,6 +1215,22 @@ export const createApbd = [
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
+  body("url_upload")
+    .optional()
+    .custom((value) => {
+      // Jika value ada, kita cek apakah itu URL atau string biasa
+      if (value) {
+        // Jika URL, cek apakah valid
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+          if (!isURL(value, { require_tld: false })) {
+            // Menambahkan opsi untuk memperbolehkan query string
+            throw new Error("URL harus berupa URL yang valid");
+          }
+        }
+      }
+      return true;
+    })
+    .withMessage("URL harus berupa URL yang valid"),
 
   async (req, res) => {
     console.log("Handler createApbd dipanggil.");
@@ -1227,7 +1243,7 @@ export const createApbd = [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name } = req.body;
+    const { name, url_upload } = req.body;
     const file = req.file; // File akan ada di sini jika middleware multer berhasil
     const createdById = req.administratorId; // UUID dari admin yang terverifikasi
     const year = parseInt(req.body.year, 10);
@@ -1238,6 +1254,7 @@ export const createApbd = [
     console.log("Data yang diterima untuk membuat APBD:", {
       name,
       year,
+      url_upload,
       file,
       createdById,
     });
@@ -1248,6 +1265,7 @@ export const createApbd = [
       const existingApbd = await prisma.apbd.findFirst({
         where: {
           name,
+          url_upload,
           year: year,
         },
       });
@@ -1256,9 +1274,10 @@ export const createApbd = [
         console.warn("APBD sudah ada untuk kombinasi nama dan tahun:", {
           name,
           year,
+          url_upload,
         });
         return res.status(400).json({
-          msg: "Nama dan Tahun APBD sudah ada, tidak bisa membuat data baru",
+          msg: "Nama, Tahun APBD, URL Upload sudah ada, tidak bisa membuat data baru",
         });
       }
 
@@ -1274,6 +1293,7 @@ export const createApbd = [
       const newApbd = await prisma.apbd.create({
         data: {
           name,
+          url_upload,
           year: parsedYear,
           file_url: req.file ? `/uploads/apbd/${req.file.filename}` : null,
           createdById,
@@ -1301,6 +1321,22 @@ export const updateApbd = [
   body("year")
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage("Tahun harus berupa angka antara 1900 dan tahun saat ini"),
+  body("url_upload")
+    .optional()
+    .custom((value) => {
+      // Jika value ada, kita cek apakah itu URL atau string biasa
+      if (value) {
+        // Jika URL, cek apakah valid
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+          if (!isURL(value, { require_tld: false })) {
+            // Menambahkan opsi untuk memperbolehkan query string
+            throw new Error("URL harus berupa URL yang valid");
+          }
+        }
+      }
+      return true;
+    })
+    .withMessage("URL harus berupa URL yang valid"),
 
   async (req, res) => {
     // Menangani validasi input
@@ -1310,7 +1346,7 @@ export const updateApbd = [
     }
 
     const { id } = req.params; // Mengambil id dari URL params
-    const { name } = req.body;
+    const { name, url_upload } = req.body;
     const file = req.file;
     const createdById = req.administratorId;
     const year = parseInt(req.body.year, 10); // Konversi `year` menjadi integer
@@ -1333,6 +1369,7 @@ export const updateApbd = [
       const duplicateApbd = await prisma.apbd.findFirst({
         where: {
           name,
+          url_upload,
           year: year, // Pastikan `year` dalam tipe integer
           NOT: { id: parseInt(id, 10) },
         },
@@ -1340,7 +1377,7 @@ export const updateApbd = [
 
       if (duplicateApbd) {
         return res.status(400).json({
-          msg: "Nama dan Tahun APBD sudah ada pada data lain, tidak bisa memperbarui data",
+          msg: "Nama, Tahun APBD, URL Upload sudah ada pada data lain, tidak bisa memperbarui data",
         });
       }
 
@@ -1360,6 +1397,7 @@ export const updateApbd = [
         where: { id: parseInt(id, 10) },
         data: {
           name,
+          url_upload,
           year: year, // Pastikan `year` dalam tipe integer
           file_url: file
             ? `/uploads/apbd/${file.filename}`
