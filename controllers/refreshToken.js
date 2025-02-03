@@ -9,48 +9,44 @@ export const refreshToken = async (req, res) => {
     if (!refreshToken)
       return res.status(401).json({ msg: "Silakan login kembali" });
 
-    const user =
-      (await prisma.administrator.findFirst({
-        where: { refresh_token: refreshToken },
-      })) ||
-      (await prisma.user.findFirst({
-        where: { refresh_token: refreshToken },
-      }));
+    // Cari pengguna berdasarkan refreshToken
+    const user = await prisma.user.findFirst({
+      where: { refresh_token: refreshToken },
+    });
 
-    if (!user)
-      return res
-        .status(403)
-        .json({ msg: "Token tidak valid atau sudah logout" });
+    const administrator = await prisma.administrator.findFirst({
+      where: { refresh_token: refreshToken },
+    });
 
+    if (!user && !administrator) {
+      return res.status(403).json({ msg: "Refresh token tidak valid" });
+    }
+
+    // Verifikasi refreshToken
     jwt.verify(
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET,
-      async (err, decoded) => {
-        if (err) {
-          await prisma.administrator.updateMany({
-            where: { refresh_token: refreshToken },
-            data: { refresh_token: null },
-          });
-          await prisma.user.updateMany({
-            where: { refresh_token: refreshToken },
-            data: { refresh_token: null },
-          });
-          return res
-            .status(403)
-            .json({ msg: "Token tidak valid, silakan login ulang" });
-        }
+      (err, decoded) => {
+        if (err)
+          return res.status(403).json({ msg: "Refresh token tidak valid" });
 
-        const payload = {
-          id: user.id || user.uuid,
-          name: user.name,
-          username: user.username,
-          role: user.role,
-        };
+        const payload = user
+          ? {
+              userId: user.uuid,
+              name: user.name,
+              username: user.username,
+              role: user.role,
+            }
+          : {
+              administratorId: administrator.id,
+              name: administrator.name,
+              username: administrator.username,
+              role: administrator.role,
+            };
 
         const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-          expiresIn: "15m",
+          expiresIn: "5m",
         });
-
         return res.json({ accessToken });
       }
     );
