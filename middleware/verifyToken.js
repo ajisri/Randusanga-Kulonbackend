@@ -10,8 +10,7 @@ export const verifyToken = (req, res, next) => {
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) return res.sendStatus(403);
-    req.id = decoded.id;
-    req.uuid = decoded.uuid;
+    req.id = decoded.userId || decoded.administratorId;
     req.name = decoded.name;
     req.username = decoded.username;
     req.email = decoded.email;
@@ -27,6 +26,8 @@ export const superOnly = async (req, res, next) => {
       refresh_token: refreshToken,
     },
   });
-  if (!administrator) return res.status(403).json({ msg: "no access" });
+  if (!administrator || administrator.role !== "super") {
+    return res.status(403).json({ msg: "Tidak memiliki akses" });
+  }
   next();
 };

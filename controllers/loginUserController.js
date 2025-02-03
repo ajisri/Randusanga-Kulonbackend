@@ -111,7 +111,7 @@ export const Login = async (req, res) => {
     const match = await bcrypt.compare(req.body.password, user.password);
     if (!match) return res.status(400).json({ msg: "Invalid password" });
 
-    const userId = user.uuid;
+    const userId = user.id;
     const name = user.name;
     const username = user.username;
     const role = user.role;
