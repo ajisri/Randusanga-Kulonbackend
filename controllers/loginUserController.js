@@ -49,11 +49,8 @@ export const Register = async (req, res) => {
 
 export const Login = async (req, res) => {
   try {
-    // Cek terlebih dahulu di tabel Administrator
     const administrator = await prisma.administrator.findFirst({
-      where: {
-        username: req.body.username,
-      },
+      where: { username: req.body.username },
     });
 
     if (administrator) {
@@ -63,80 +60,81 @@ export const Login = async (req, res) => {
       );
       if (!match) return res.status(400).json({ msg: "Invalid password" });
 
-      const administratorId = administrator.id;
-      const name = administrator.name;
-      const username = administrator.username;
-      const role = administrator.role;
+      // Revoke refresh token lama
+      await prisma.administrator.update({
+        where: { id: administrator.id },
+        data: { refresh_token: null },
+      });
 
-      const accessToken = jwt.sign(
-        { administratorId, name, username, role },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "10s" }
-      );
+      // Generate tokens
+      const payload = {
+        id: administrator.id,
+        name: administrator.name,
+        username: administrator.username,
+        role: administrator.role,
+      };
 
-      const refreshToken = jwt.sign(
-        { administratorId, name, username, role },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: "1d" }
-      );
+      const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "15m",
+      });
+      const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: "12h",
+      });
 
       await prisma.administrator.update({
-        where: { id: administratorId },
+        where: { id: administrator.id },
         data: { refresh_token: refreshToken },
       });
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
-        secure: true, // Untuk HTTPS
-        sameSite: "None",
+        secure: process.env.NODE_ENV === "production", // Hanya aktif di HTTPS
+        sameSite: "Strict",
+        maxAge: 12 * 60 * 60 * 1000, // 12 jam
       });
 
       return res.json({ accessToken });
     }
 
-    // Jika tidak ditemukan di tabel Administrator, cek di tabel User
+    // Cek di tabel User jika bukan administrator
     const user = await prisma.user.findFirst({
-      where: {
-        username: req.body.username,
-      },
+      where: { username: req.body.username },
     });
 
-    // Jika user tidak ditemukan, kirim pesan error
-    if (!user) {
-      return res.status(404).json({ msg: "Username tidak ditemukan" });
-    }
+    if (!user) return res.status(404).json({ msg: "Username tidak ditemukan" });
 
     const match = await bcrypt.compare(req.body.password, user.password);
     if (!match) return res.status(400).json({ msg: "Invalid password" });
 
-    const userId = user.uuid;
-    const name = user.name;
-    const username = user.username;
-    const role = user.role;
+    await prisma.user.update({
+      where: { uuid: user.uuid },
+      data: { refresh_token: null },
+    });
 
-    const accessToken = jwt.sign(
-      { userId, name, username, role },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "10s" }
-    );
+    const payload = {
+      id: user.uuid,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+    };
 
-    const refreshToken = jwt.sign(
-      { userId, name, username, role },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "1d" }
-    );
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: "15m",
+    });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: "12h",
+    });
 
     await prisma.user.update({
-      where: { uuid: userId },
+      where: { uuid: user.uuid },
       data: { refresh_token: refreshToken },
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      secure: true, // Untuk HTTPS
-      sameSite: "None",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 12 * 60 * 60 * 1000,
     });
 
     return res.json({ accessToken });

@@ -5,61 +5,57 @@ const prisma = new PrismaClient();
 
 export const refreshToken = async (req, res) => {
   try {
-    if (!req.cookies.refreshToken)
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken)
       return res.status(401).json({ msg: "Silakan login kembali" });
 
-    const refreshToken = req.cookies.refreshToken;
-    const administrator = await prisma.administrator.findUnique({
-      where: {
-        refresh_token: refreshToken,
-      },
-    });
+    const user =
+      (await prisma.administrator.findFirst({
+        where: { refresh_token: refreshToken },
+      })) ||
+      (await prisma.user.findFirst({
+        where: { refresh_token: refreshToken },
+      }));
 
-    if (administrator) {
-      jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET,
-        (err, decoded) => {
-          if (err) return res.status(403).json({ msg: "Token tidak valid" });
+    if (!user)
+      return res
+        .status(403)
+        .json({ msg: "Token tidak valid atau sudah logout" });
 
-          const { uuid: administratorId, name, username, role } = administrator;
-          const accessToken = jwt.sign(
-            { administratorId, name, username, role },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "15s" }
-          );
-          return res.json({ accessToken });
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          await prisma.administrator.updateMany({
+            where: { refresh_token: refreshToken },
+            data: { refresh_token: null },
+          });
+          await prisma.user.updateMany({
+            where: { refresh_token: refreshToken },
+            data: { refresh_token: null },
+          });
+          return res
+            .status(403)
+            .json({ msg: "Token tidak valid, silakan login ulang" });
         }
-      );
-    } else {
-      const user = await prisma.user.findUnique({
-        where: {
-          refresh_token: refreshToken,
-        },
-      });
 
-      if (!user) {
-        return res.status(404).json({ msg: "User tidak ditemukan" });
+        const payload = {
+          id: user.id || user.uuid,
+          name: user.name,
+          username: user.username,
+          role: user.role,
+        };
+
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+          expiresIn: "15m",
+        });
+
+        return res.json({ accessToken });
       }
-
-      jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET,
-        (err, decoded) => {
-          if (err) return res.status(403).json({ msg: "Token tidak valid" });
-
-          const { id: userId, name, username, role } = user;
-          const accessToken = jwt.sign(
-            { userId, name, username, role },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "15s" }
-          );
-          return res.json({ accessToken });
-        }
-      );
-    }
+    );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ msg: "Terjadi kesalahan server" });
   }
 };
