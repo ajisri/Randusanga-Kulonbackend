@@ -13,7 +13,7 @@ export const verifyToken = (req, res, next) => {
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) return res.sendStatus(403);
-    req.id = decoded.userId || decoded.administratorId;
+    req.id = decoded.id;
     req.name = decoded.name;
     req.username = decoded.username;
     req.role = decoded.role;
