@@ -28,15 +28,12 @@ export const refreshToken = async (req, res) => {
     const currentUser = administrator || user;
 
     try {
-      const decoded = jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET
-      );
+      jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     } catch (err) {
       return res.status(403).json({ msg: "Token tidak valid" });
     }
 
-    // Hapus dan perbarui refresh token
+    // Generate refresh token baru
     const newRefreshToken = jwt.sign(
       {
         id: currentUser.id,
@@ -48,20 +45,31 @@ export const refreshToken = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    await prisma[
-      currentUser.role === "admin" ? "administrator" : "user"
-    ].update({
-      where: { id: currentUser.id },
-      data: { refresh_token: newRefreshToken },
-    });
+    // Gunakan transaksi database untuk menghapus lalu memperbarui token
+    await prisma.$transaction([
+      prisma[
+        currentUser.role === "administrator" ? "administrator" : "user"
+      ].update({
+        where: { id: currentUser.id },
+        data: { refresh_token: null },
+      }),
+      prisma[
+        currentUser.role === "administrator" ? "administrator" : "user"
+      ].update({
+        where: { id: currentUser.id },
+        data: { refresh_token: newRefreshToken },
+      }),
+    ]);
 
+    // Simpan refresh token baru di cookie
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 1 hari
     });
 
+    // Buat access token baru
     const accessToken = jwt.sign(
       {
         id: currentUser.id,
@@ -76,6 +84,6 @@ export const refreshToken = async (req, res) => {
     return res.json({ accessToken });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ msg: "Terjadi kesalahan server anjing" });
+    return res.status(500).json({ msg: "Terjadi kesalahan server" });
   }
 };
