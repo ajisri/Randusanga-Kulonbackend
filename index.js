@@ -27,6 +27,8 @@ app.use(
     // origin: "http://localhost:3000",
     origin: "https://randusanga-kulon.vercel.app",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Pastikan metode diperbolehkan
+    allowedHeaders: ["Content-Type", "Authorization"], // Pastikan header diperbolehkan
   })
 );
 app.use(express.json());
