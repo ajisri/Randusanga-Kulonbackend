@@ -76,6 +76,6 @@ export const refreshToken = async (req, res) => {
     return res.json({ accessToken });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ msg: "Terjadi kesalahan server" });
+    return res.status(500).json({ msg: "Terjadi kesalahan server anjing" });
   }
 };
