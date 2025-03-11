@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 
 export const Register = async (req, res) => {
   const { name, username, email, password, confpassword, role } = req.body;
+  console.log(req.body);
   if (name == "") return res.status(404).json({ msg: "name is empty" });
   if (username == "") return res.status(404).json({ msg: "username is empty" });
   if (email == "") return res.status(404).json({ msg: "email is empty" });
@@ -49,8 +50,11 @@ export const Register = async (req, res) => {
 
 export const Login = async (req, res) => {
   try {
+    // Cek terlebih dahulu di tabel Administrator
     const administrator = await prisma.administrator.findFirst({
-      where: { username: req.body.username },
+      where: {
+        username: req.body.username,
+      },
     });
 
     if (administrator) {
@@ -60,48 +64,49 @@ export const Login = async (req, res) => {
       );
       if (!match) return res.status(400).json({ msg: "Invalid password" });
 
-      // Revoke refresh token lama
-      await prisma.administrator.update({
-        where: { id: administrator.id },
-        data: { refresh_token: null },
-      });
+      const administratorId = administrator.id;
+      const name = administrator.name;
+      const username = administrator.username;
+      const role = administrator.role;
 
-      // Generate tokens
-      const payload = {
-        id: administrator.id,
-        name: administrator.name,
-        username: administrator.username,
-        role: administrator.role,
-      };
+      const accessToken = jwt.sign(
+        { administratorId, name, username, role },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "5m" }
+      );
 
-      const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "15m",
-      });
-      const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
-        expiresIn: "12h",
-      });
+      const refreshToken = jwt.sign(
+        { administratorId, name, username, role },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: "1d" }
+      );
 
       await prisma.administrator.update({
-        where: { id: administrator.id },
+        where: { id: administratorId },
         data: { refresh_token: refreshToken },
       });
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Hanya aktif di HTTPS
+        maxAge: 24 * 60 * 60 * 1000,
+        secure: true, // Untuk HTTPS
         sameSite: "None",
-        maxAge: 12 * 60 * 60 * 1000, // 12 jam
       });
 
       return res.json({ accessToken });
     }
 
-    // Cek di tabel User jika bukan administrator
+    // Jika tidak ditemukan di tabel Administrator, cek di tabel User
     const user = await prisma.user.findFirst({
-      where: { username: req.body.username },
+      where: {
+        username: req.body.username,
+      },
     });
 
-    if (!user) return res.status(404).json({ msg: "Username tidak ditemukan" });
+    // Jika user tidak ditemukan, kirim pesan error
+    if (!user) {
+      return res.status(404).json({ msg: "Username tidak ditemukan" });
+    }
 
     const match = await bcrypt.compare(req.body.password, user.password);
     if (!match) return res.status(400).json({ msg: "Invalid password" });
@@ -111,23 +116,28 @@ export const Login = async (req, res) => {
     const username = user.username;
     const role = user.role;
 
-    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "15m",
-    });
-    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
-      expiresIn: "12h",
-    });
+    const accessToken = jwt.sign(
+      { userId, name, username, role },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId, name, username, role },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "1d" }
+    );
 
     await prisma.user.update({
-      where: { uuid: user.uuid },
+      where: { uuid: userId },
       data: { refresh_token: refreshToken },
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000,
+      secure: true, // Untuk HTTPS
       sameSite: "None",
-      maxAge: 12 * 60 * 60 * 1000,
     });
 
     return res.json({ accessToken });

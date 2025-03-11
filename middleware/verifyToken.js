@@ -5,17 +5,16 @@ const prisma = new PrismaClient();
 
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  if (!authHeader) return res.sendStatus(401);
   const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token)
-    return res.status(401).json({ msg: "Token tidak tersedia, silakan login" });
+  if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) return res.sendStatus(403);
     req.id = decoded.id;
+    req.uuid = decoded.uuid;
     req.name = decoded.name;
     req.username = decoded.username;
+    req.email = decoded.email;
     req.role = decoded.role;
     next();
   });
@@ -28,8 +27,6 @@ export const superOnly = async (req, res, next) => {
       refresh_token: refreshToken,
     },
   });
-  if (!administrator || administrator.role !== "super") {
-    return res.status(403).json({ msg: "Tidak memiliki akses" });
-  }
+  if (!administrator) return res.status(403).json({ msg: "no access" });
   next();
 };
