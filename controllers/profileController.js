@@ -790,26 +790,26 @@ export const createStrukturorganisasi = async (req, res) => {
 //demografi pengunjung
 export const getDemografipengunjung = async (req, res) => {
   try {
+    // Ambil data pendidikan
     const educationCounts = await prisma.demographics.groupBy({
       by: ["education_id"],
       _count: { id: true },
     });
 
-    // Fetch related education details based on the education_ids
     const educationIds = educationCounts
       .map((count) => count.education_id)
-      .filter(Boolean); // Make sure to filter out undefined values
+      .filter(Boolean);
     const educationDetails = await prisma.education.findMany({
       where: { id: { in: educationIds } },
     });
 
-    // Combine education data with counts
     const educationCountsWithDetails = educationCounts.map((count) => ({
       education_id: count.education_id,
       count: count._count.id,
-      education: educationDetails.find((edu) => edu.id === count.education_id), // Ensure you're matching on the correct property
+      education: educationDetails.find((edu) => edu.id === count.education_id),
     }));
 
+    // Ambil data pekerjaan
     const jobCounts = await prisma.demographics.groupBy({
       by: ["job"],
       _count: { id: true },
@@ -818,60 +818,15 @@ export const getDemografipengunjung = async (req, res) => {
     const generateColors = (count) => {
       const colors = [];
       for (let i = 0; i < count; i++) {
-        // Generate random RGB color
         const color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
           Math.random() * 255
-        )}, ${Math.floor(Math.random() * 255)}, 0.6)`; // Adjust alpha as needed
+        )}, ${Math.floor(Math.random() * 255)}, 0.6)`;
         colors.push(color);
       }
       return colors;
     };
 
-    // Pastikan data jobCounts sudah valid
-    try {
-      // Mengambil data jumlah berdasarkan pekerjaan
-      const jobCounts = await prisma.demographics.groupBy({
-        by: ["job"],
-        _count: { id: true },
-      });
-      // Pastikan data jobCounts sudah valid
-      if (!jobCounts || jobCounts.length === 0) {
-        throw new Error("No job data available.");
-      }
-
-      // Mengurutkan pekerjaan berdasarkan jumlah terbesar
-      const sortedJobs = jobCounts.sort((a, b) => b._count.id - a._count.id);
-      // Mengambil 5 pekerjaan terbesar
-      const topJobs = sortedJobs.slice(0, 5);
-      // Menghitung jumlah pekerjaan yang lain selain dari top 5
-      const otherJobCount = sortedJobs
-        .slice(5)
-        .reduce((acc, job) => acc + job._count.id, 0);
-      // Menambahkan kategori "Others" jika ada pekerjaan selain dari top 5
-      const labels = topJobs.map((job) => job.job || "Unknown");
-      if (otherJobCount > 0) {
-        labels.push("Others");
-      }
-      // Menyiapkan data untuk Chart
-      const jobChartData = {
-        labels: labels,
-        datasets: [
-          {
-            data: [
-              ...topJobs.map((job) => job._count.id),
-              otherJobCount,
-            ].filter(
-              (count) => count > 0 // Hanya menampilkan data yang lebih dari 0
-            ),
-            backgroundColor: [...generateColors(topJobs.length), "grey"], // Gunakan fungsi untuk generate warna
-          },
-        ],
-      };
-    } catch (error) {
-      console.error("Error processing job chart data:", error);
-      // Penanganan error
-    }
-
+    // Ambil data agama
     const religionCounts = await prisma.demographics.groupBy({
       by: ["religion_id"],
       _count: { id: true },
@@ -886,27 +841,88 @@ export const getDemografipengunjung = async (req, res) => {
       religion: religionDetails.find((r) => r.id === count.religion_id),
     }));
 
+    // Ambil data jenis kelamin
     const genderCounts = await prisma.demographics.groupBy({
       by: ["gender"],
       _count: { id: true },
     });
 
+    // Ambil data status perkawinan
     const maritalStatusCounts = await prisma.demographics.groupBy({
       by: ["marital_status"],
       _count: { id: true },
     });
 
-    // Send the response with combined data
+    // Ambil data birth_date, rt, rw, dan hamlet
+    const demographicsData = await prisma.demographics.findMany({
+      select: {
+        birth_date: true,
+        rt: true,
+        rw: true,
+        hamlet: true,
+      },
+    });
+
+    // Hitung umur dari birth_date
+    const calculateAge = (birthDate) => {
+      const today = new Date();
+      const birth = new Date(birthDate);
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birth.getDate())
+      ) {
+        age--;
+      }
+      return age;
+    };
+
+    const ages = demographicsData.map((item) => calculateAge(item.birth_date));
+
+    // Kelompokkan data berdasarkan RT, RW, dan Dusun
+    const groupByRT = (data) => {
+      return data.reduce((acc, item) => {
+        const rt = item.rt || "Unknown";
+        if (!acc[rt]) acc[rt] = [];
+        acc[rt].push(item);
+        return acc;
+      }, {});
+    };
+
+    const groupByRW = (data) => {
+      return data.reduce((acc, item) => {
+        const rw = item.rw || "Unknown";
+        if (!acc[rw]) acc[rw] = [];
+        acc[rw].push(item);
+        return acc;
+      }, {});
+    };
+
+    const groupByHamlet = (data) => {
+      return data.reduce((acc, item) => {
+        const hamlet = item.hamlet || "Unknown";
+        if (!acc[hamlet]) acc[hamlet] = [];
+        acc[hamlet].push(item);
+        return acc;
+      }, {});
+    };
+
+    // Kirim respons ke Frontend
     res.json({
       educationCounts: educationCountsWithDetails,
       jobCounts,
       religionCounts: religionCountsWithDetails,
       genderCounts,
       maritalStatusCounts,
+      demographicsData, // Data lengkap
+      ages, // Data umur
+      groupedByRT: groupByRT(demographicsData), // Data dikelompokkan berdasarkan RT
+      groupedByRW: groupByRW(demographicsData), // Data dikelompokkan berdasarkan RW
+      groupedByHamlet: groupByHamlet(demographicsData), // Data dikelompokkan berdasarkan Dusun
     });
   } catch (error) {
     console.error(error);
-    // Handle any errors that occur during the process
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
