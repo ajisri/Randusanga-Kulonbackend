@@ -815,17 +815,6 @@ export const getDemografipengunjung = async (req, res) => {
       _count: { id: true },
     });
 
-    const generateColors = (count) => {
-      const colors = [];
-      for (let i = 0; i < count; i++) {
-        const color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
-          Math.random() * 255
-        )}, ${Math.floor(Math.random() * 255)}, 0.6)`;
-        colors.push(color);
-      }
-      return colors;
-    };
-
     // Ambil data agama
     const religionCounts = await prisma.demographics.groupBy({
       by: ["religion_id"],
@@ -878,7 +867,27 @@ export const getDemografipengunjung = async (req, res) => {
       return age;
     };
 
-    const ages = demographicsData.map((item) => calculateAge(item.birth_date));
+    // Kelompokkan umur
+    const ageGroups = {
+      "0-17": 0,
+      "18-25": 0,
+      "26-35": 0,
+      "36-45": 0,
+      "46-55": 0,
+      "56-65": 0,
+      "65+": 0,
+    };
+
+    demographicsData.forEach((item) => {
+      const age = calculateAge(item.birth_date);
+      if (age >= 0 && age <= 17) ageGroups["0-17"]++;
+      else if (age >= 18 && age <= 25) ageGroups["18-25"]++;
+      else if (age >= 26 && age <= 35) ageGroups["26-35"]++;
+      else if (age >= 36 && age <= 45) ageGroups["36-45"]++;
+      else if (age >= 46 && age <= 55) ageGroups["46-55"]++;
+      else if (age >= 56 && age <= 65) ageGroups["56-65"]++;
+      else ageGroups["65+"]++;
+    });
 
     // Kelompokkan data berdasarkan RT, RW, dan Dusun
     const groupByRT = (data) => {
@@ -915,8 +924,8 @@ export const getDemografipengunjung = async (req, res) => {
       religionCounts: religionCountsWithDetails,
       genderCounts,
       maritalStatusCounts,
+      ageGroups, // Data umur yang sudah dikelompokkan
       demographicsData, // Data lengkap
-      ages, // Data umur
       groupedByRT: groupByRT(demographicsData), // Data dikelompokkan berdasarkan RT
       groupedByRW: groupByRW(demographicsData), // Data dikelompokkan berdasarkan RW
       groupedByHamlet: groupByHamlet(demographicsData), // Data dikelompokkan berdasarkan Dusun
