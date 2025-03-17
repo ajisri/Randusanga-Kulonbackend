@@ -809,13 +809,21 @@ export const getDemografipengunjung = async (req, res) => {
     // Fungsi utilitas untuk mengelompokkan data berdasarkan jenis kelamin
     const groupByGender = (data, key) => {
       return data.reduce((acc, item) => {
-        const gender = item.gender || "Unknown";
+        // Normalisasi nilai gender (case-insensitive)
+        const gender = (item.gender || "Unknown").trim().toLowerCase();
+        const normalizedGender =
+          gender === "laki-laki"
+            ? "Laki-laki"
+            : gender === "perempuan"
+            ? "Perempuan"
+            : "Unknown";
+
         const category = item[key] || "Unknown";
 
         if (!acc[category]) acc[category] = { total: 0, male: 0, female: 0 };
         acc[category].total++;
-        if (gender === "Laki-Laki") acc[category].male++;
-        if (gender === "Perempuan") acc[category].female++;
+        if (normalizedGender === "Laki-laki") acc[category].male++;
+        if (normalizedGender === "Perempuan") acc[category].female++;
 
         return acc;
       }, {});
@@ -900,36 +908,55 @@ export const getDemografipengunjung = async (req, res) => {
 
     allDemographics.forEach((item) => {
       const age = calculateAge(item.birth_date);
-      const gender = item.gender || "Unknown";
+      const gender = (item.gender || "Unknown").trim().toLowerCase();
+      const normalizedGender =
+        gender === "laki-laki"
+          ? "Laki-laki"
+          : gender === "perempuan"
+          ? "Perempuan"
+          : "Unknown";
 
       if (age >= 0 && age <= 17) {
         ageGroupsWithGender["0-17"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["0-17"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["0-17"].female++;
+        if (normalizedGender === "Laki-laki")
+          ageGroupsWithGender["0-17"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["0-17"].female++;
       } else if (age >= 18 && age <= 25) {
         ageGroupsWithGender["18-25"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["18-25"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["18-25"].female++;
+        if (normalizedGender === "Laki-laki")
+          ageGroupsWithGender["18-25"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["18-25"].female++;
       } else if (age >= 26 && age <= 35) {
         ageGroupsWithGender["26-35"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["26-35"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["26-35"].female++;
+        if (normalizedGender === "Laki-laki")
+          ageGroupsWithGender["26-35"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["26-35"].female++;
       } else if (age >= 36 && age <= 45) {
         ageGroupsWithGender["36-45"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["36-45"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["36-45"].female++;
+        if (normalizedGender === "Laki-laki")
+          ageGroupsWithGender["36-45"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["36-45"].female++;
       } else if (age >= 46 && age <= 55) {
         ageGroupsWithGender["46-55"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["46-55"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["46-55"].female++;
+        if (normalizedGender === "Laki-laki")
+          ageGroupsWithGender["46-55"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["46-55"].female++;
       } else if (age >= 56 && age <= 65) {
         ageGroupsWithGender["56-65"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["56-65"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["56-65"].female++;
+        if (normalizedGender === "Laki-laki")
+          ageGroupsWithGender["56-65"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["56-65"].female++;
       } else {
         ageGroupsWithGender["65+"].total++;
-        if (gender === "Laki-Laki") ageGroupsWithGender["65+"].male++;
-        if (gender === "Perempuan") ageGroupsWithGender["65+"].female++;
+        if (normalizedGender === "Laki-laki") ageGroupsWithGender["65+"].male++;
+        if (normalizedGender === "Perempuan")
+          ageGroupsWithGender["65+"].female++;
       }
     });
 
