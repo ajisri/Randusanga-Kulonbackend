@@ -790,67 +790,87 @@ export const createStrukturorganisasi = async (req, res) => {
 //demografi pengunjung
 export const getDemografipengunjung = async (req, res) => {
   try {
-    // Ambil data pendidikan
-    const educationCounts = await prisma.demographics.groupBy({
-      by: ["education_id"],
-      _count: { id: true },
-    });
-
-    const educationIds = educationCounts
-      .map((count) => count.education_id)
-      .filter(Boolean);
-    const educationDetails = await prisma.education.findMany({
-      where: { id: { in: educationIds } },
-    });
-
-    const educationCountsWithDetails = educationCounts.map((count) => ({
-      education_id: count.education_id,
-      count: count._count.id,
-      education: educationDetails.find((edu) => edu.id === count.education_id),
-    }));
-
-    // Ambil data pekerjaan
-    const jobCounts = await prisma.demographics.groupBy({
-      by: ["job"],
-      _count: { id: true },
-    });
-
-    // Ambil data agama
-    const religionCounts = await prisma.demographics.groupBy({
-      by: ["religion_id"],
-      _count: { id: true },
-    });
-
-    const religionDetails = await prisma.religion.findMany({
-      where: { id: { in: religionCounts.map((r) => r.religion_id) } },
-    });
-
-    const religionCountsWithDetails = religionCounts.map((count) => ({
-      ...count,
-      religion: religionDetails.find((r) => r.id === count.religion_id),
-    }));
-
-    // Ambil data jenis kelamin
-    const genderCounts = await prisma.demographics.groupBy({
-      by: ["gender"],
-      _count: { id: true },
-    });
-
-    // Ambil data status perkawinan
-    const maritalStatusCounts = await prisma.demographics.groupBy({
-      by: ["marital_status"],
-      _count: { id: true },
-    });
-
-    // Ambil data birth_date, rt, rw, dan hamlet
-    const demographicsData = await prisma.demographics.findMany({
+    // Ambil semua data demografi
+    const allDemographics = await prisma.demographics.findMany({
       select: {
+        id: true,
+        gender: true,
+        education_id: true,
+        job: true,
+        religion_id: true,
+        marital_status: true,
         birth_date: true,
         rt: true,
         rw: true,
         hamlet: true,
       },
     });
+
+    // Fungsi utilitas untuk mengelompokkan data berdasarkan jenis kelamin
+    const groupByGender = (data, key) => {
+      return data.reduce((acc, item) => {
+        const gender = item.gender || "Unknown";
+        const category = item[key] || "Unknown";
+
+        if (!acc[category]) acc[category] = { total: 0, male: 0, female: 0 };
+        acc[category].total++;
+        if (gender === "Laki-laki") acc[category].male++;
+        if (gender === "Perempuan") acc[category].female++;
+
+        return acc;
+      }, {});
+    };
+
+    // Ambil data pendidikan dengan distribusi jenis kelamin
+    const educationWithGender = groupByGender(allDemographics, "education_id");
+    const educationDetails = await prisma.education.findMany({
+      where: { id: { in: Object.keys(educationWithGender).map(Number) } },
+    });
+
+    const educationCountsWithGender = educationDetails.map((edu) => ({
+      education_id: edu.id,
+      level: edu.level,
+      total: educationWithGender[edu.id].total,
+      male: educationWithGender[edu.id].male,
+      female: educationWithGender[edu.id].female,
+    }));
+
+    // Ambil data pekerjaan dengan distribusi jenis kelamin
+    const jobWithGender = groupByGender(allDemographics, "job");
+    const jobCountsWithGender = Object.keys(jobWithGender).map((job) => ({
+      job,
+      total: jobWithGender[job].total,
+      male: jobWithGender[job].male,
+      female: jobWithGender[job].female,
+    }));
+
+    // Ambil data agama dengan distribusi jenis kelamin
+    const religionWithGender = groupByGender(allDemographics, "religion_id");
+    const religionDetails = await prisma.religion.findMany({
+      where: { id: { in: Object.keys(religionWithGender).map(Number) } },
+    });
+
+    const religionCountsWithGender = religionDetails.map((religion) => ({
+      religion_id: religion.id,
+      name: religion.name,
+      total: religionWithGender[religion.id].total,
+      male: religionWithGender[religion.id].male,
+      female: religionWithGender[religion.id].female,
+    }));
+
+    // Ambil data status perkawinan dengan distribusi jenis kelamin
+    const maritalStatusWithGender = groupByGender(
+      allDemographics,
+      "marital_status"
+    );
+    const maritalStatusCountsWithGender = Object.keys(
+      maritalStatusWithGender
+    ).map((status) => ({
+      marital_status: status,
+      total: maritalStatusWithGender[status].total,
+      male: maritalStatusWithGender[status].male,
+      female: maritalStatusWithGender[status].female,
+    }));
 
     // Hitung umur dari birth_date
     const calculateAge = (birthDate) => {
@@ -867,68 +887,67 @@ export const getDemografipengunjung = async (req, res) => {
       return age;
     };
 
-    // Kelompokkan umur
-    const ageGroups = {
-      "0-17": 0,
-      "18-25": 0,
-      "26-35": 0,
-      "36-45": 0,
-      "46-55": 0,
-      "56-65": 0,
-      "65+": 0,
+    // Kelompokkan umur dengan distribusi jenis kelamin
+    const ageGroupsWithGender = {
+      "0-17": { total: 0, male: 0, female: 0 },
+      "18-25": { total: 0, male: 0, female: 0 },
+      "26-35": { total: 0, male: 0, female: 0 },
+      "36-45": { total: 0, male: 0, female: 0 },
+      "46-55": { total: 0, male: 0, female: 0 },
+      "56-65": { total: 0, male: 0, female: 0 },
+      "65+": { total: 0, male: 0, female: 0 },
     };
 
-    demographicsData.forEach((item) => {
+    allDemographics.forEach((item) => {
       const age = calculateAge(item.birth_date);
-      if (age >= 0 && age <= 17) ageGroups["0-17"]++;
-      else if (age >= 18 && age <= 25) ageGroups["18-25"]++;
-      else if (age >= 26 && age <= 35) ageGroups["26-35"]++;
-      else if (age >= 36 && age <= 45) ageGroups["36-45"]++;
-      else if (age >= 46 && age <= 55) ageGroups["46-55"]++;
-      else if (age >= 56 && age <= 65) ageGroups["56-65"]++;
-      else ageGroups["65+"]++;
+      const gender = item.gender || "Unknown";
+
+      if (age >= 0 && age <= 17) {
+        ageGroupsWithGender["0-17"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["0-17"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["0-17"].female++;
+      } else if (age >= 18 && age <= 25) {
+        ageGroupsWithGender["18-25"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["18-25"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["18-25"].female++;
+      } else if (age >= 26 && age <= 35) {
+        ageGroupsWithGender["26-35"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["26-35"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["26-35"].female++;
+      } else if (age >= 36 && age <= 45) {
+        ageGroupsWithGender["36-45"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["36-45"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["36-45"].female++;
+      } else if (age >= 46 && age <= 55) {
+        ageGroupsWithGender["46-55"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["46-55"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["46-55"].female++;
+      } else if (age >= 56 && age <= 65) {
+        ageGroupsWithGender["56-65"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["56-65"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["56-65"].female++;
+      } else {
+        ageGroupsWithGender["65+"].total++;
+        if (gender === "Laki-laki") ageGroupsWithGender["65+"].male++;
+        if (gender === "Perempuan") ageGroupsWithGender["65+"].female++;
+      }
     });
 
-    // Kelompokkan data berdasarkan RT, RW, dan Dusun
-    const groupByRT = (data) => {
-      return data.reduce((acc, item) => {
-        const rt = item.rt || "Unknown";
-        if (!acc[rt]) acc[rt] = [];
-        acc[rt].push(item);
-        return acc;
-      }, {});
-    };
-
-    const groupByRW = (data) => {
-      return data.reduce((acc, item) => {
-        const rw = item.rw || "Unknown";
-        if (!acc[rw]) acc[rw] = [];
-        acc[rw].push(item);
-        return acc;
-      }, {});
-    };
-
-    const groupByHamlet = (data) => {
-      return data.reduce((acc, item) => {
-        const hamlet = item.hamlet || "Unknown";
-        if (!acc[hamlet]) acc[hamlet] = [];
-        acc[hamlet].push(item);
-        return acc;
-      }, {});
-    };
+    // Kelompokkan data berdasarkan RT, RW, dan Dusun dengan distribusi jenis kelamin
+    const groupByRTWithGender = groupByGender(allDemographics, "rt");
+    const groupByRWWithGender = groupByGender(allDemographics, "rw");
+    const groupByHamletWithGender = groupByGender(allDemographics, "hamlet");
 
     // Kirim respons ke Frontend
     res.json({
-      educationCounts: educationCountsWithDetails,
-      jobCounts,
-      religionCounts: religionCountsWithDetails,
-      genderCounts,
-      maritalStatusCounts,
-      ageGroups, // Data umur yang sudah dikelompokkan
-      demographicsData, // Data lengkap
-      groupedByRT: groupByRT(demographicsData), // Data dikelompokkan berdasarkan RT
-      groupedByRW: groupByRW(demographicsData), // Data dikelompokkan berdasarkan RW
-      groupedByHamlet: groupByHamlet(demographicsData), // Data dikelompokkan berdasarkan Dusun
+      educationCounts: educationCountsWithGender,
+      jobCounts: jobCountsWithGender,
+      religionCounts: religionCountsWithGender,
+      maritalStatusCounts: maritalStatusCountsWithGender,
+      ageGroups: ageGroupsWithGender,
+      groupedByRT: groupByRTWithGender,
+      groupedByRW: groupByRWWithGender,
+      groupedByHamlet: groupByHamletWithGender,
     });
   } catch (error) {
     console.error(error);
