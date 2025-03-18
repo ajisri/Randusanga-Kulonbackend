@@ -965,6 +965,11 @@ export const getDemografipengunjung = async (req, res) => {
     const groupByRWWithGender = groupByGender(allDemographics, "rw");
     const groupByHamletWithGender = groupByGender(allDemographics, "hamlet");
 
+    const genderCounts = await prisma.demographics.groupBy({
+      by: ["gender"],
+      _count: { id: true },
+    });
+
     // Kirim respons ke Frontend
     res.json({
       educationCounts: educationCountsWithGender,
@@ -975,6 +980,7 @@ export const getDemografipengunjung = async (req, res) => {
       groupedByRT: groupByRTWithGender,
       groupedByRW: groupByRWWithGender,
       groupedByHamlet: groupByHamletWithGender,
+      genderCounts,
     });
   } catch (error) {
     console.error(error);
