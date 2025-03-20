@@ -100,7 +100,7 @@ export const createIndexDesaMembangun = async (req, res) => {
       return res.status(400).json({ msg: "Semua field wajib diisi" });
     }
 
-    const newIndexDesaMembangun = await prisma.IndexDesaMembangun.create({
+    const newIndexDesaMembangun = await prisma.indexDesaMembangun.create({
       data: {
         statusidm,
         nilaiidm,
