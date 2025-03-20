@@ -6,7 +6,7 @@ import uploadLembaga from "../middleware/fileUploadLembaga.js";
 import { body, validationResult } from "express-validator";
 
 import {
-  getIndexDesaMembangunPengunjung,
+  getIdmPengunjung,
   getIndexDesaMembangunAdmin,
   createIndexDesaMembangun,
   updateIndexDesaMembangun,
@@ -75,7 +75,7 @@ router.get("/education-options", getEducationOptions);
 router.get("/agama", getAgama);
 
 //batas wilayah pengunjung
-router.get("/indexdesamembangunpengunjung", getIndexDesaMembangunPengunjung);
+router.get("/indexdesamembangunpengunjung", getIdmPengunjung);
 //batas wilayah admin
 router.get(
   "/indexdesamembangun",
