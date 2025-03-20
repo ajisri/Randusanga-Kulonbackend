@@ -7,10 +7,10 @@ import { body, validationResult } from "express-validator";
 
 import {
   getIndexDesaMembangunPengunjung,
-  getIndexDesaMembangunhAdmin,
-  createIndexDesaMembangunh,
-  updateIndexDesaMembangunh,
-  deleteIndexDesaMembangunh,
+  getIndexDesaMembangunAdmin,
+  createIndexDesaMembangun,
+  updateIndexDesaMembangun,
+  deleteIndexDesaMembangun,
   getDesacantikpengunjung,
   getDesacantik,
   createDesacantik,
@@ -81,7 +81,7 @@ router.get(
   "/indexdesamembangun",
   verifyToken,
   superOnly,
-  getIndexDesaMembangunhAdmin
+  getIndexDesaMembangunAdmin
 );
 
 // POST route for creating batas wilayah data
@@ -89,19 +89,19 @@ router.post(
   "/cindexdesamembangun",
   verifyToken,
   superOnly,
-  createIndexDesaMembangunh
+  createIndexDesaMembangun
 );
 router.patch(
   "/indexdesamembangun/:uuid",
   verifyToken,
   superOnly,
-  updateIndexDesaMembangunh
+  updateIndexDesaMembangun
 );
 router.delete(
   "/indexdesamembangun/:uuid",
   verifyToken,
   superOnly,
-  deleteIndexDesaMembangunh
+  deleteIndexDesaMembangun
 );
 
 router.get("/desacantikpengunjung", getDesacantikpengunjung);
