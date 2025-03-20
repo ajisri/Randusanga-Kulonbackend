@@ -108,6 +108,7 @@ export const createIndexDesaMembangun = async (req, res) => {
         iks,
         ike,
         ket,
+        createdbyId: admin.id,
       },
     });
 
