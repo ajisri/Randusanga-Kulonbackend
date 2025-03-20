@@ -6,6 +6,11 @@ import uploadLembaga from "../middleware/fileUploadLembaga.js";
 import { body, validationResult } from "express-validator";
 
 import {
+  getIndexDesaMembangunPengunjung,
+  getIndexDesaMembangunhAdmin,
+  createIndexDesaMembangunh,
+  updateIndexDesaMembangunh,
+  deleteIndexDesaMembangunh,
   getDesacantikpengunjung,
   getDesacantik,
   createDesacantik,
@@ -68,6 +73,36 @@ router.get("/education-options", getEducationOptions);
 
 // Mendapatkan opsi agama
 router.get("/agama", getAgama);
+
+//batas wilayah pengunjung
+router.get("/indexdesamembangunpengunjung", getIndexDesaMembangunPengunjung);
+//batas wilayah admin
+router.get(
+  "/indexdesamembangun",
+  verifyToken,
+  superOnly,
+  getIndexDesaMembangunhAdmin
+);
+
+// POST route for creating batas wilayah data
+router.post(
+  "/cindexdesamembangun",
+  verifyToken,
+  superOnly,
+  createIndexDesaMembangunh
+);
+router.patch(
+  "/indexdesamembangun/:uuid",
+  verifyToken,
+  superOnly,
+  updateIndexDesaMembangunh
+);
+router.delete(
+  "/indexdesamembangun/:uuid",
+  verifyToken,
+  superOnly,
+  deleteIndexDesaMembangunh
+);
 
 router.get("/desacantikpengunjung", getDesacantikpengunjung);
 router.get("/desacantik", verifyToken, superOnly, getDesacantik);
