@@ -134,6 +134,12 @@ export const updateIndexDesaMembangun = async (req, res) => {
   const { statusidm, nilaiidm, ikl, iks, ike, ket } = req.body;
 
   try {
+    // Validasi data
+    if (!statusidm || !nilaiidm || !ikl || !iks || !ike || !ket) {
+      return res.status(400).json({ msg: "Semua field wajib diisi" });
+    }
+
+    // Cek autentikasi admin
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
       return res.status(401).json({ msg: "Token tidak ditemukan" });
@@ -147,6 +153,7 @@ export const updateIndexDesaMembangun = async (req, res) => {
       return res.status(403).json({ msg: "Akses ditolak" });
     }
 
+    // Cek apakah data dengan UUID tersebut ada
     const existingIndexDesaMembangun =
       await prisma.IndexDesaMembangun.findUnique({
         where: { uuid },
@@ -156,6 +163,7 @@ export const updateIndexDesaMembangun = async (req, res) => {
       return res.status(404).json({ msg: "Tahun IDM tidak ditemukan" });
     }
 
+    // Update data
     const updatedIndexDesaMembangun = await prisma.IndexDesaMembangun.update({
       where: { uuid },
       data: {
@@ -169,6 +177,7 @@ export const updateIndexDesaMembangun = async (req, res) => {
       },
     });
 
+    // Kirim respons sukses
     res.status(200).json({
       msg: "IDM diperbarui",
       IndexDesaMembangun: updatedIndexDesaMembangun,
