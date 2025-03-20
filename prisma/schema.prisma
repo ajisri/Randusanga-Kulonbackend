@@ -66,6 +66,7 @@ model Administrator {
   Jabatan Jabatan[]
   MasaJabatan MasaJabatan[]
   Kehadiran Kehadiran[]
+  IndexDesaMembangun IndexDesaMembangun[]
 }
 
 model User{
@@ -122,6 +123,24 @@ model MasaJabatan {
   createdbyId     Int
   createdBy       Administrator? @relation(fields: [createdbyId], references: [id])
 
+}
+
+// Tabel IDM
+model IndexDesaMembangun {
+  id            Int           @id @default(autoincrement())
+  uuid          String        @default(uuid()) @unique
+  statusidm     String
+  nilaiidm      String
+  ikl           String
+  iks           String
+  ike           String
+  ket           String
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+
+  // Always refer to an Administrator
+  createdbyId   Int
+  createdBy     Administrator  @relation(fields: [createdbyId], references: [id])
 }
 
 model Tugas {

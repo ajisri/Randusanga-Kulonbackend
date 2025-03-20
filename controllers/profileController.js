@@ -31,6 +31,191 @@ export const getAgama = async (req, res) => {
   }
 };
 
+//IDM
+// Get: Ambil semua data idm
+export const getIdmPengunjung = async (req, res) => {
+  try {
+    const IndexDesaMembangun = await prisma.IndexDesaMembangun.findMany();
+
+    if (IndexDesaMembangun.length === 0) {
+      return res.status(200).json({ IndexDesaMembangun: [] });
+    }
+
+    res.status(200).json({ IndexDesaMembangun });
+  } catch (error) {
+    console.error("Error saat mengambil data IDM:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
+// Admin: Ambil semua data batas wilayah dengan autentikasi
+export const getIndexDesaMembangunAdmin = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const admin = await prisma.administrator.findUnique({
+      where: { refresh_token: refreshToken },
+    });
+
+    if (!admin || admin.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+
+    const batasWilayah = await prisma.batasWilayah.findMany();
+
+    if (batasWilayah.length === 0) {
+      return res.status(200).json({ batasWilayah: [] });
+    }
+
+    res.status(200).json({ batasWilayah });
+  } catch (error) {
+    console.error("Error saat mengambil data IDM untuk admin:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
+// Create: Membuat data batas wilayah baru (tanpa geographyId)
+export const createIndexDesaMembangun = async (req, res) => {
+  const { statusidm, nilaiidm, ikl, iks, ike, ket } = req.body;
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const admin = await prisma.administrator.findUnique({
+      where: { refresh_token: refreshToken },
+    });
+
+    if (!admin || admin.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+
+    // Validasi input
+    if (!statusidm || !nilaiidm || ikl || iks || ike || ket) {
+      return res.status(400).json({ msg: "Semua field wajib diisi" });
+    }
+
+    const newIndexDesaMembangun = await prisma.IndexDesaMembangun.create({
+      data: {
+        statusidm,
+        nilaiidm,
+        ikl,
+        iks,
+        ike,
+        ket,
+      },
+    });
+
+    res.status(201).json({
+      msg: "IDM berhasil dibuat",
+      IndexDesaMembangun: newIndexDesaMembangun,
+    });
+  } catch (error) {
+    console.error("Error saat membuat IDM:", error);
+
+    // Handling error spesifik dari Prisma
+    if (error.code === "P2002") {
+      return res.status(409).json({ msg: "Data IDM sudah ada" });
+    }
+
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
+// Update: Memperbarui data idm yang ada
+export const updateIndexDesaMembangun = async (req, res) => {
+  const { uuid } = req.params; // Mengambil UUID dari URL
+  const { statusidm, nilaiidm, ikl, iks, ike, ket } = req.body;
+
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const admin = await prisma.administrator.findUnique({
+      where: { refresh_token: refreshToken },
+    });
+
+    if (!admin || admin.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+
+    const existingIndexDesaMembangun =
+      await prisma.IndexDesaMembangun.findUnique({
+        where: { uuid },
+      });
+
+    if (!existingIndexDesaMembangun) {
+      return res.status(404).json({ msg: "Tahun IDM tidak ditemukan" });
+    }
+
+    const updatedIndexDesaMembangun = await prisma.IndexDesaMembangun.update({
+      where: { uuid },
+      data: {
+        statusidm,
+        nilaiidm,
+        ikl,
+        iks,
+        ike,
+        ket,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.status(200).json({
+      msg: "IDM diperbarui",
+      IndexDesaMembangun: updatedIndexDesaMembangun,
+    });
+  } catch (error) {
+    console.error("Error saat memperbarui IDM:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
+// Delete: Menghapus data IDM berdasarkan UUID
+export const deleteIndexDesaMembangun = async (req, res) => {
+  const { uuid } = req.params;
+
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const admin = await prisma.administrator.findUnique({
+      where: { refresh_token: refreshToken },
+    });
+
+    if (!admin || admin.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+
+    const existingIndexDesaMembangun =
+      await prisma.IndexDesaMembangun.findUnique({
+        where: { uuid },
+      });
+
+    if (!existingIndexDesaMembangun) {
+      return res.status(404).json({ msg: "IDM tidak ditemukan" });
+    }
+
+    await prisma.IndexDesaMembangun.delete({
+      where: { uuid },
+    });
+
+    res.status(200).json({ msg: "IDM dihapus dengan sukses" });
+  } catch (error) {
+    console.error("Error saat menghapus IDM:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
 //desa cantik admin
 export const getDesacantik = async (req, res) => {
   try {
