@@ -31,6 +31,195 @@ export const getAgama = async (req, res) => {
   }
 };
 
+//desa cantik admin
+export const getDesacantik = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ msg: "Token tidak ditemukan" });
+    }
+
+    const administrator = await prisma.administrator.findUnique({
+      where: {
+        refresh_token: refreshToken,
+      },
+    });
+
+    if (!administrator) {
+      return res.status(401).json({ msg: "Pengguna tidak ditemukan" });
+    }
+
+    if (administrator.role !== "administrator") {
+      return res.status(403).json({ msg: "Akses ditolak" });
+    }
+
+    // Mengambil data profil dengan pname 'desacantik'
+    const profiles = await prisma.profile.findMany({
+      where: {
+        pname: "desacantik",
+      },
+    });
+
+    // Jika tidak ada data, kirimkan data kosong
+    if (profiles.length === 0) {
+      return res.status(200).json({
+        profile: {
+          uuid: "",
+          title: "Judul Desa Cantik",
+          content: "",
+          file_url: "",
+          status: "DRAFT",
+          pname: "desacantik",
+        },
+      });
+    }
+
+    // Kirimkan data dengan menggunakan map untuk memastikan struktur data
+    const profileData = profiles.map((profile) => ({
+      uuid: profile.uuid || "",
+      title: profile.title || "Judul Desa Cantik",
+      content: profile.content || "",
+      file_url: profile.file_url || "",
+      status: profile.status || "DRAFT",
+      pname: profile.pname || "desacantik",
+    }))[0]; // Mengambil elemen pertama jika data array
+
+    res.status(200).json({ profile: profileData });
+  } catch (error) {
+    console.error("Error saat mengambil data:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
+export const createDesacantik = async (req, res) => {
+  const { title, visionContent, status, pname } = req.body;
+  const file = req.file;
+
+  try {
+    if (!["DRAFT", "PUBLISH"].includes(status)) {
+      return res
+        .status(400)
+        .json({ error: "Invalid status. Must be DRAFT or PUBLISH." });
+    }
+
+    // Cek administrator dari token
+    const refreshToken = req.cookies.refreshToken;
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const administrator = await prisma.administrator.findUnique({
+      where: { id: decoded.administratorId },
+    });
+
+    if (!administrator || administrator.role !== "administrator") {
+      return res.status(403).json({ msg: "Access denied" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Cek apakah profile dengan pname sudah ada
+      const existingProfile = await tx.profile.findFirst({
+        where: { pname: pname },
+      });
+
+      if (existingProfile) {
+        let filePathToDelete = null;
+
+        // Jika ada file baru, tentukan path file lama untuk dihapus
+        if (file) {
+          if (existingProfile.file_url) {
+            filePathToDelete = path.join(
+              __dirname,
+              "..",
+              "uploads",
+              path.basename(existingProfile.file_url)
+            );
+          }
+        }
+
+        // Update profile jika sudah ada
+        const updatedProfile = await tx.profile.update({
+          where: { uuid: existingProfile.uuid },
+          data: {
+            title,
+            content: visionContent,
+            file_url: file
+              ? `/uploads/${file.filename}`
+              : existingProfile.file_url, // Update file URL jika ada file baru
+            status,
+            updated_at: new Date(), // Update waktu
+          },
+        });
+
+        // Hapus file lama jika ada file baru dan file lama ditemukan
+        if (filePathToDelete && fs.existsSync(filePathToDelete)) {
+          fs.unlinkSync(filePathToDelete);
+          console.log(`Successfully deleted old file: ${filePathToDelete}`);
+        }
+
+        return { type: "update", profile: updatedProfile };
+      } else {
+        // Create profile jika belum ada
+        const newProfile = await tx.profile.create({
+          data: {
+            title,
+            content: visionContent,
+            file_url: file ? `/uploads/${file.filename}` : null, // Simpan URL file dengan path yang benar
+            pname: pname,
+            status,
+            createdbyId: administrator.id,
+          },
+        });
+        return { type: "create", profile: newProfile };
+      }
+    });
+
+    // Mengirimkan response sesuai hasil transaksi
+    if (result.type === "update") {
+      res
+        .status(200)
+        .json({ msg: "Profile updated successfully", profile: result.profile });
+    } else {
+      res
+        .status(201)
+        .json({ msg: "Profile created successfully", profile: result.profile });
+    }
+  } catch (error) {
+    console.error("Error:", error.message); // Log error untuk debugging
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+//desa cantik pengunjung
+export const getDesacantikpengunjung = async (req, res) => {
+  try {
+    const profiles = await prisma.profile.findMany({
+      where: {
+        pname: "desacantik",
+        status: "PUBLISH",
+      },
+    });
+
+    if (profiles.length === 0) {
+      return res.status(200).json({
+        profile: {
+          uuid: "",
+          title: "Judul Desa Cantik",
+          content: "",
+          file_url: "",
+          status: "DRAFT",
+          pname: "desacantik",
+        },
+      });
+    }
+
+    const profileData = profiles[0]; // Ambil elemen pertama dari array jika data ada
+
+    res.status(200).json({ profile: profileData });
+  } catch (error) {
+    console.error("Error saat mengambil data desa cantik:", error);
+    res.status(500).json({ msg: "Terjadi kesalahan pada server" });
+  }
+};
+
 //tentang admin
 export const getTentang = async (req, res) => {
   try {

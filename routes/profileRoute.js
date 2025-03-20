@@ -6,6 +6,9 @@ import uploadLembaga from "../middleware/fileUploadLembaga.js";
 import { body, validationResult } from "express-validator";
 
 import {
+  getDesacantikpengunjung,
+  getDesacantik,
+  createDesacantik,
   getTentangpengunjung,
   getTentang,
   createTentang,
@@ -66,6 +69,16 @@ router.get("/education-options", getEducationOptions);
 // Mendapatkan opsi agama
 router.get("/agama", getAgama);
 
+router.get("/desacantikpengunjung", getDesacantikpengunjung);
+router.get("/desacantik", verifyToken, superOnly, getDesacantik);
+router.post(
+  "/cdesacantik",
+  verifyToken,
+  superOnly,
+  upload.single("file"),
+  createDesacantik
+);
+
 router.get("/tentangpengunjung", getTentangpengunjung);
 router.get("/tentang", verifyToken, superOnly, getTentang);
 router.post(
@@ -75,6 +88,7 @@ router.post(
   upload.single("file"),
   createTentang
 );
+
 router.get("/sejarahpengunjung", getSejarahpengunjung);
 router.get("/sejarah", verifyToken, superOnly, getSejarah);
 router.post(
