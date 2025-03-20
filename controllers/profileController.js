@@ -78,7 +78,7 @@ export const getIndexDesaMembangunAdmin = async (req, res) => {
   }
 };
 
-// Create: Membuat data batas wilayah baru (tanpa geographyId)
+// Create: Membuat data idm baru (tanpa geographyId)
 export const createIndexDesaMembangun = async (req, res) => {
   const { statusidm, nilaiidm, ikl, iks, ike, ket } = req.body;
   try {
