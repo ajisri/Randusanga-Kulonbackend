@@ -74,9 +74,9 @@ router.get("/education-options", getEducationOptions);
 // Mendapatkan opsi agama
 router.get("/agama", getAgama);
 
-//batas wilayah pengunjung
+//idm pengunjung
 router.get("/indexdesamembangunpengunjung", getIdmPengunjung);
-//batas wilayah admin
+//idm admin
 router.get(
   "/indexdesamembangun",
   verifyToken,
@@ -84,7 +84,7 @@ router.get(
   getIndexDesaMembangunAdmin
 );
 
-// POST route for creating batas wilayah data
+// POST route for creating idm data
 router.post(
   "/cindexdesamembangun",
   verifyToken,

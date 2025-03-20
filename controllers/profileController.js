@@ -48,7 +48,7 @@ export const getIdmPengunjung = async (req, res) => {
   }
 };
 
-// Admin: Ambil semua data batas wilayah dengan autentikasi
+// Admin: Ambil semua data idm dengan autentikasi
 export const getIndexDesaMembangunAdmin = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -65,13 +65,13 @@ export const getIndexDesaMembangunAdmin = async (req, res) => {
       return res.status(403).json({ msg: "Akses ditolak" });
     }
 
-    const batasWilayah = await prisma.batasWilayah.findMany();
+    const IndexDesaMembangun = await prisma.IndexDesaMembangun.findMany();
 
-    if (batasWilayah.length === 0) {
-      return res.status(200).json({ batasWilayah: [] });
+    if (IndexDesaMembangun.length === 0) {
+      return res.status(200).json({ IndexDesaMembangun: [] });
     }
 
-    res.status(200).json({ batasWilayah });
+    res.status(200).json({ IndexDesaMembangun });
   } catch (error) {
     console.error("Error saat mengambil data IDM untuk admin:", error);
     res.status(500).json({ msg: "Terjadi kesalahan pada server" });
