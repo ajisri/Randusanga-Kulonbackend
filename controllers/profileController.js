@@ -96,7 +96,7 @@ export const createIndexDesaMembangun = async (req, res) => {
     }
 
     // Validasi input
-    if (!statusidm || !nilaiidm || ikl || iks || ike || ket) {
+    if (!statusidm || !nilaiidm || !ikl || !iks || !ike || !ket) {
       return res.status(400).json({ msg: "Semua field wajib diisi" });
     }
 
