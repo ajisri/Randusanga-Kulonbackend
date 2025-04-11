@@ -173,7 +173,7 @@ export const updateIndexDesaMembangun = async (req, res) => {
         iks,
         ike,
         ket,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       },
     });
 

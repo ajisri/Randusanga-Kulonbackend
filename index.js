@@ -24,8 +24,8 @@ app.use(cookieParser());
 app.use("/uploads", express.static(path.resolve("uploads")));
 app.use(
   cors({
-    // origin: "http://localhost:3000",
-    origin: "https://randusanga-kulon.vercel.app",
+    origin: "http://localhost:3000",
+    // origin: "https://randusanga-kulon.vercel.app",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Pastikan metode diperbolehkan
     allowedHeaders: ["Content-Type", "Authorization"], // Pastikan header diperbolehkan
