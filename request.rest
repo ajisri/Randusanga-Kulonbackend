@@ -1,4 +1,4 @@
-POST http://localhost:8080/register
+POST https://ds-randusanga-kulon.osc-fr1.scalingo.io/register
 Content-Type: application/json
 
 {
