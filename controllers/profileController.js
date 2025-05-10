@@ -2970,8 +2970,6 @@ export const updateLembaga = async (req, res) => {
   } = req.body;
   const file = req.file;
 
-  console.log("Request body:", req.body);
-
   let filePathToDelete = null;
 
   try {
@@ -3006,7 +3004,6 @@ export const updateLembaga = async (req, res) => {
         },
       });
 
-      // Upsert konten lembaga (jika ada)
       if (profil) {
         await tx.ProfilLembaga.upsert({
           where: { lembagaId: updatedLembaga.uuid },
@@ -3031,7 +3028,7 @@ export const updateLembaga = async (req, res) => {
         });
       }
 
-      // Proses jabatan
+      // Semua logika jabatan dipindahkan ke dalam transaksi
       const parsedJabatans = JSON.parse(jabatans);
 
       const existingAnggota = await tx.Anggota.findMany({
@@ -3042,7 +3039,6 @@ export const updateLembaga = async (req, res) => {
         parsedJabatans.map((j) => j.uuid).filter(Boolean)
       );
 
-      // Hapus anggota yang tidak ada lagi
       for (const anggota of existingAnggota) {
         if (!existingUuids.has(anggota.uuid)) {
           await tx.Anggota.delete({
@@ -3051,7 +3047,6 @@ export const updateLembaga = async (req, res) => {
         }
       }
 
-      // Tambah atau update anggota
       for (const jabatanData of parsedJabatans) {
         if (jabatanData.uuid) {
           await tx.Anggota.upsert({
@@ -3083,17 +3078,14 @@ export const updateLembaga = async (req, res) => {
       return updatedLembaga;
     });
 
-    // Operasi penghapusan file dilakukan di luar transaksi
+    // File hanya dihapus setelah transaksi sukses
     if (filePathToDelete) {
       try {
         await fs.promises.access(filePathToDelete);
         await fs.promises.unlink(filePathToDelete);
-        console.log(`Successfully deleted old file: ${filePathToDelete}`);
-      } catch (fileError) {
-        console.error(
-          `Failed to delete old file: ${filePathToDelete}`,
-          fileError
-        );
+        console.log(`File lama berhasil dihapus: ${filePathToDelete}`);
+      } catch (err) {
+        console.error("Gagal menghapus file lama:", err);
       }
     }
 
