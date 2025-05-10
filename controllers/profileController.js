@@ -2980,10 +2980,7 @@ export const updateLembaga = async (req, res) => {
   const file = req.file;
 
   let parsedJabatans = [];
-  let oldFilePath = null;
-
   try {
-    // Validasi jabatans
     parsedJabatans = JSON.parse(jabatans);
     if (!Array.isArray(parsedJabatans)) {
       return res.status(400).json({ message: "Jabatans harus berupa array" });
@@ -2995,25 +2992,28 @@ export const updateLembaga = async (req, res) => {
     });
   }
 
+  let oldFilePath = null;
+
   try {
-    console.log("Memulai transaksi...");
+    const existingLembaga = await prisma.lembaga.findUnique({
+      where: { uuid },
+    });
+    if (!existingLembaga) {
+      return res.status(404).json({ message: "Lembaga tidak ditemukan" });
+    }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const existingLembaga = await tx.lembaga.findUnique({ where: { uuid } });
-      if (!existingLembaga) throw new Error("Lembaga tidak ditemukan");
+    if (file && existingLembaga.file_url) {
+      oldFilePath = path.join(
+        __dirname,
+        "..",
+        "uploads/lembaga",
+        path.basename(existingLembaga.file_url)
+      );
+    }
 
-      // Simpan path file lama (untuk dihapus nanti, setelah transaksi)
-      if (file && existingLembaga.file_url) {
-        oldFilePath = path.join(
-          __dirname,
-          "..",
-          "uploads/lembaga",
-          path.basename(existingLembaga.file_url)
-        );
-      }
-
+    const updatedLembaga = await prisma.$transaction(async (tx) => {
       // Update lembaga
-      const updatedLembaga = await tx.lembaga.update({
+      const lembaga = await tx.lembaga.update({
         where: { uuid },
         data: {
           nama,
@@ -3026,7 +3026,7 @@ export const updateLembaga = async (req, res) => {
         },
       });
 
-      // Upsert konten lembaga
+      // Upsert konten
       if (profil) {
         await tx.profilLembaga.upsert({
           where: { lembagaId: uuid },
@@ -3051,7 +3051,7 @@ export const updateLembaga = async (req, res) => {
         });
       }
 
-      // Tangani anggota
+      // Ambil semua anggota lama
       const existingAnggota = await tx.anggota.findMany({
         where: { lembagaDesaid: uuid },
       });
@@ -3059,14 +3059,14 @@ export const updateLembaga = async (req, res) => {
       const existingUuids = existingAnggota.map((a) => a.uuid);
       const incomingUuids = parsedJabatans.map((j) => j.uuid).filter(Boolean);
 
-      // Hapus anggota yang tidak ada di data baru
+      // Hapus yang tidak ada di list baru
       for (const id of existingUuids) {
         if (!incomingUuids.includes(id)) {
           await tx.anggota.delete({ where: { uuid: id } });
         }
       }
 
-      // Upsert anggota
+      // Upsert atau create anggota baru
       for (const j of parsedJabatans) {
         const data = {
           lembagaDesaid: uuid,
@@ -3086,17 +3086,16 @@ export const updateLembaga = async (req, res) => {
         }
       }
 
-      return updatedLembaga;
+      return lembaga;
     });
 
-    // Setelah transaksi: hapus file lama jika ada
     if (oldFilePath) {
       await deleteFile(oldFilePath);
     }
 
     res.status(200).json({
       message: "Lembaga berhasil diperbarui",
-      data: result,
+      data: updatedLembaga,
     });
   } catch (error) {
     console.error("Gagal memperbarui lembaga:", error.message);
