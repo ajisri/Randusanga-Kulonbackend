@@ -2969,16 +2969,16 @@ export const updateLembaga = async (req, res) => {
     jabatans,
   } = req.body;
   const file = req.file;
-  console.log("Request body:", req.body);
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // Check if lembaga exists first
       const existingLembaga = await tx.Lembaga.findUnique({
         where: { uuid },
       });
 
       if (!existingLembaga) {
-        return res.status(404).json({ message: "Lembaga not found" });
+        throw new Error("Lembaga not found");
       }
 
       let filePathToDelete = null;
@@ -2991,6 +2991,7 @@ export const updateLembaga = async (req, res) => {
         );
       }
 
+      // Update lembaga
       const updatedLembaga = await tx.Lembaga.update({
         where: { uuid },
         data: {
@@ -3004,6 +3005,7 @@ export const updateLembaga = async (req, res) => {
         },
       });
 
+      // Process related data
       await Promise.all([
         profil &&
           tx.ProfilLembaga.upsert({
@@ -3025,87 +3027,95 @@ export const updateLembaga = async (req, res) => {
           }),
       ]);
 
-      const parsedJabatans = JSON.parse(jabatans); // Parsing data jabatan
-      // Dapatkan semua UUID anggota yang ada di database
+      // Process anggota data
+      const parsedJabatans = JSON.parse(jabatans);
+
+      // Get existing anggota in a single query
       const existingAnggota = await tx.Anggota.findMany({
         where: { lembagaDesaid: updatedLembaga.uuid },
+        select: { uuid: true },
       });
 
-      const existingAnggotaUuids = existingAnggota.map(
-        (anggota) => anggota.uuid
+      const existingAnggotaUuids = existingAnggota.map((a) => a.uuid);
+      const incomingUuids = parsedJabatans
+        .filter((j) => j.uuid)
+        .map((j) => j.uuid);
+
+      // Find uuids to delete (exist in DB but not in incoming data)
+      const uuidsToDelete = existingAnggotaUuids.filter(
+        (uuid) => !incomingUuids.includes(uuid)
       );
 
-      // Proses untuk menghapus anggota yang tidak ada dalam parsedJabatans
-      for (const anggota of existingAnggota) {
-        const isStillPresent = parsedJabatans.some(
-          (jabatanData) => jabatanData.uuid === anggota.uuid
-        );
-        if (!isStillPresent) {
-          await tx.Anggota.delete({
-            where: { uuid: anggota.uuid },
-          });
-        }
+      // Batch delete
+      if (uuidsToDelete.length > 0) {
+        await tx.Anggota.deleteMany({
+          where: { uuid: { in: uuidsToDelete } },
+        });
       }
 
-      // Meng-update atau menambah anggota yang ada dalam parsedJabatans
-      const jabatanPromises = parsedJabatans.map(async (jabatanData) => {
+      // Process updates and creates
+      const updateOperations = parsedJabatans.map((jabatanData) => {
+        const data = {
+          lembagaDesaid: updatedLembaga.uuid,
+          jabatan: jabatanData.namaJabatan,
+          demografiDesaid: jabatanData.demografiId,
+        };
+
         if (jabatanData.uuid) {
-          // Jika UUID tersedia, gunakan UUID untuk upsert
-          return tx.Anggota.upsert({
+          return tx.Anggota.update({
             where: { uuid: jabatanData.uuid },
-            update: {
-              lembagaDesaid: updatedLembaga.uuid,
-              jabatan: jabatanData.namaJabatan,
-              demografiDesaid: jabatanData.demografiId,
-            },
-            create: {
-              lembagaDesaid: updatedLembaga.uuid,
-              jabatan: jabatanData.namaJabatan,
-              demografiDesaid: jabatanData.demografiId,
-              createdById: existingLembaga.createdbyId,
-            },
+            data,
           });
         } else {
-          // Jika UUID tidak ada, maka buat anggota baru
           return tx.Anggota.create({
             data: {
-              lembagaDesaid: updatedLembaga.uuid,
-              jabatan: jabatanData.namaJabatan,
-              demografiDesaid: jabatanData.demografiId,
+              ...data,
               createdById: existingLembaga.createdbyId,
             },
           });
         }
       });
 
-      // Ganti Promise.all(jabatanPromises) dengan
-      await Promise.all(jabatanPromises);
-
-      // Operasi penghapusan file lama secara asinkron
-      if (filePathToDelete) {
-        try {
-          await fs.promises.access(filePathToDelete);
-          await fs.promises.unlink(filePathToDelete);
-          console.log(`Successfully deleted old file: ${filePathToDelete}`);
-        } catch (fileError) {
-          console.error(
-            `Failed to delete old file: ${filePathToDelete}`,
-            fileError
-          );
-        }
-      }
+      await Promise.all(updateOperations);
 
       return updatedLembaga;
     });
 
-    res
-      .status(200)
-      .json({ message: "Lembaga updated successfully", data: result });
+    // File deletion should happen AFTER the transaction completes successfully
+    if (file && existingLembaga?.file_url) {
+      const filePathToDelete = path.join(
+        __dirname,
+        "..",
+        "uploads/lembaga",
+        path.basename(existingLembaga.file_url)
+      );
+
+      try {
+        await fs.promises.unlink(filePathToDelete);
+        console.log(`Successfully deleted old file: ${filePathToDelete}`);
+      } catch (fileError) {
+        console.error(
+          `Failed to delete old file: ${filePathToDelete}`,
+          fileError
+        );
+      }
+    }
+
+    res.status(200).json({
+      message: "Lembaga updated successfully",
+      data: result,
+    });
   } catch (error) {
-    console.error("Error updating lembaga:", error.message, error.stack);
-    res
-      .status(500)
-      .json({ message: "Error updating lembaga", error: error.message });
+    console.error("Error updating lembaga:", error);
+
+    if (error.message === "Lembaga not found") {
+      return res.status(404).json({ message: error.message });
+    }
+
+    res.status(500).json({
+      message: "Error updating lembaga",
+      error: error.message,
+    });
   }
 };
 
