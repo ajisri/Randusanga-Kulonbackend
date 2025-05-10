@@ -2958,178 +2958,164 @@ export const createLembaga = async (req, res) => {
 //update lembaga
 export const updateLembaga = async (req, res) => {
   const { uuid } = req.params;
-  const {
-    nama,
-    singkatan,
-    dasar_hukum,
-    alamat_kantor,
-    profil,
-    visimisi,
-    tugaspokok,
-    jabatans,
-  } = req.body;
-  const file = req.file;
-  console.log("Request body:", req.body);
 
   try {
+    // Mulai transaksi
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Cari lembaga yang akan diupdate
-      const existingLembaga = await tx.Lembaga.findUnique({
-        where: { uuid },
-      });
-
-      if (!existingLembaga) {
-        throw new Error("Lembaga not found");
-      }
-
-      // 2. Siapkan path file lama untuk dihapus nanti
-      let filePathToDelete = null;
-      if (file && existingLembaga.file_url) {
-        filePathToDelete = path.join(
-          __dirname,
-          "..",
-          "uploads/lembaga",
-          path.basename(existingLembaga.file_url)
-        );
-      }
-
-      // 3. Update data lembaga utama
-      const updatedLembaga = await tx.Lembaga.update({
-        where: { uuid },
-        data: {
-          nama,
-          singkatan,
-          dasar_hukum,
-          alamat_kantor,
-          file_url: file
-            ? `uploads/lembaga/${file.filename}`
-            : existingLembaga.file_url,
-        },
-      });
-
-      // 4. Update profil, visi misi, dan tugas pokok secara paralel
-      await Promise.all([
-        profil &&
-          tx.ProfilLembaga.upsert({
-            where: { lembagaId: updatedLembaga.uuid },
-            update: { content: profil },
-            create: {
-              lembagaId: updatedLembaga.uuid,
-              content: profil,
-              createdbyId: existingLembaga.createdbyId,
-            },
-          }),
-        visimisi &&
-          tx.VisiMisi.upsert({
-            where: { lembagaId: updatedLembaga.uuid },
-            update: { content: visimisi },
-            create: {
-              lembagaId: updatedLembaga.uuid,
-              content: visimisi,
-              createdbyId: existingLembaga.createdbyId,
-            },
-          }),
-        tugaspokok &&
-          tx.TugasPokok.upsert({
-            where: { lembagaId: updatedLembaga.uuid },
-            update: { content: tugaspokok },
-            create: {
-              lembagaId: updatedLembaga.uuid,
-              content: tugaspokok,
-              createdbyId: existingLembaga.createdbyId,
-            },
-          }),
-      ]);
-
-      // 5. Proses data anggota
-      const parsedJabatans = JSON.parse(jabatans);
-
-      // Dapatkan semua anggota yang ada
-      const existingAnggota = await tx.anggota.findMany({
-        where: { lembagaDesaid: updatedLembaga.uuid },
-      });
-
-      const existingAnggotaUuids = existingAnggota.map(
-        (anggota) => anggota.uuid
-      );
-
-      // Anggota yang akan dihapus (ada di database tapi tidak di input baru)
-      const anggotaToDelete = existingAnggota.filter(
-        (anggota) => !parsedJabatans.some((j) => j.uuid === anggota.uuid)
-      );
-
-      // Anggota yang akan diupdate/dibuat
-      const anggotaToUpsert = parsedJabatans.filter(
-        (j) => !j.uuid || existingAnggotaUuids.includes(j.uuid)
-      );
-
-      // Anggota yang akan dibuat baru
-      const anggotaToCreate = parsedJabatans.filter(
-        (j) => !j.uuid && !existingAnggotaUuids.includes(j.uuid)
-      );
-
-      // Eksekusi operasi database
-      await Promise.all([
-        // Hapus anggota yang tidak diperlukan
-        ...anggotaToDelete.map((anggota) =>
-          tx.anggota.delete({
-            where: { uuid: anggota.uuid },
-          })
-        ),
-
-        // Update anggota yang ada
-        ...anggotaToUpsert.map((jabatanData) =>
-          tx.anggota.update({
-            where: { uuid: jabatanData.uuid },
-            data: {
-              jabatan: jabatanData.namaJabatan,
-              demografiDesaid: jabatanData.demografiId,
-            },
-          })
-        ),
-
-        // Buat anggota baru
-        ...anggotaToCreate.map((jabatanData) =>
-          tx.anggota.create({
-            data: {
-              lembagaDesaid: updatedLembaga.uuid,
-              jabatan: jabatanData.namaJabatan,
-              demografiDesaid: jabatanData.demografiId,
-              createdById: existingLembaga.createdById,
-            },
-          })
-        ),
-      ]);
-
-      return updatedLembaga;
-    });
-
-    // Hapus file lama setelah transaksi berhasil
-    if (filePathToDelete) {
       try {
-        await fs.promises.access(filePathToDelete);
-        await fs.promises.unlink(filePathToDelete);
-        console.log(`Successfully deleted old file: ${filePathToDelete}`);
-      } catch (fileError) {
-        console.error(
-          `Failed to delete old file: ${filePathToDelete}`,
-          fileError
-        );
-      }
-    }
+        // 1. Validasi dan persiapan data
+        const existingLembaga = await tx.lembaga.findUnique({
+          where: { uuid },
+          include: { Anggota: true },
+        });
 
-    res.status(200).json({
-      message: "Lembaga updated successfully",
-      data: result,
+        if (!existingLembaga) {
+          throw new Error("Lembaga not found");
+        }
+
+        // 2. Update data lembaga utama
+        const updatedLembaga = await tx.lembaga.update({
+          where: { uuid },
+          data: {
+            nama: req.body.nama,
+            singkatan: req.body.singkatan,
+            dasar_hukum: req.body.dasar_hukum,
+            alamat_kantor: req.body.alamat_kantor,
+            file_url: req.file
+              ? `uploads/lembaga/${req.file.filename}`
+              : existingLembaga.file_url,
+          },
+        });
+
+        // 3. Update konten terkait (profil, visimisi, tugaspokok)
+        await updateRelatedContent(
+          tx,
+          updatedLembaga,
+          req.body,
+          existingLembaga.createdbyId
+        );
+
+        // 4. Handle anggota/jabatan
+        await handleAnggotaUpdates(
+          tx,
+          updatedLembaga,
+          req.body.jabatans,
+          existingLembaga.createdbyId
+        );
+
+        return updatedLembaga;
+      } catch (error) {
+        console.error("Error dalam transaksi:", error);
+        throw error; // Re-throw untuk membatalkan transaksi
+      }
     });
+
+    res
+      .status(200)
+      .json({ message: "Lembaga updated successfully", data: result });
   } catch (error) {
-    console.error("Error updating lembaga:", error.message, error.stack);
+    console.error("Error updating lembaga:", error);
     res.status(500).json({
       message: "Error updating lembaga",
       error: error.message,
     });
   }
 };
+
+// Fungsi pembantu untuk update konten terkait
+async function updateRelatedContent(tx, lembaga, body, createdbyId) {
+  const updates = [];
+
+  if (body.profil) {
+    updates.push(
+      tx.profilLembaga.upsert({
+        where: { lembagaId: lembaga.uuid },
+        update: { content: body.profil },
+        create: {
+          lembagaId: lembaga.uuid,
+          content: body.profil,
+          createdbyId: createdbyId,
+        },
+      })
+    );
+  }
+
+  if (body.visimisi) {
+    updates.push(
+      tx.visiMisi.upsert({
+        where: { lembagaId: lembaga.uuid },
+        update: { content: body.visimisi },
+        create: {
+          lembagaId: lembaga.uuid,
+          content: body.visimisi,
+          createdbyId: createdbyId,
+        },
+      })
+    );
+  }
+
+  if (body.tugaspokok) {
+    updates.push(
+      tx.tugasPokok.upsert({
+        where: { lembagaId: lembaga.uuid },
+        update: { content: body.tugaspokok },
+        create: {
+          lembagaId: lembaga.uuid,
+          content: body.tugaspokok,
+          createdbyId: createdbyId,
+        },
+      })
+    );
+  }
+
+  await Promise.all(updates);
+}
+
+// Fungsi pembantu untuk update anggota
+async function handleAnggotaUpdates(tx, lembaga, jabatans, createdbyId) {
+  try {
+    const parsedJabatans = JSON.parse(jabatans);
+    const existingAnggota = await tx.anggota.findMany({
+      where: { lembagaDesaid: lembaga.uuid },
+    });
+
+    // Handle penghapusan anggota yang tidak ada lagi
+    const currentUuids = parsedJabatans.map((j) => j.uuid).filter(Boolean);
+    const toDelete = existingAnggota.filter(
+      (a) => !currentUuids.includes(a.uuid)
+    );
+
+    if (toDelete.length > 0) {
+      await tx.anggota.deleteMany({
+        where: { uuid: { in: toDelete.map((a) => a.uuid) } },
+      });
+    }
+
+    // Update atau buat anggota baru
+    const updatePromises = parsedJabatans.map((jabatan) => {
+      const data = {
+        lembagaDesaid: lembaga.uuid,
+        jabatan: jabatan.namaJabatan,
+        demografiDesaid: jabatan.demografiId,
+        createdbyId: createdbyId,
+      };
+
+      if (jabatan.uuid) {
+        return tx.anggota.update({
+          where: { uuid: jabatan.uuid },
+          data,
+        });
+      } else {
+        return tx.anggota.create({ data });
+      }
+    });
+
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error("Error handling anggota updates:", error);
+    throw error;
+  }
+}
 
 export const deleteLembaga = async (req, res) => {
   const { uuid } = req.params;
