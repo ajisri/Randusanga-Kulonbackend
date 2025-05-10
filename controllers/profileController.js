@@ -2995,6 +2995,7 @@ export const updateLembaga = async (req, res) => {
         console.log("File yang akan dihapus:", filePathToDelete);
       }
 
+      // Memperbarui lembaga
       console.log("Memperbarui lembaga...");
       const updatedLembaga = await tx.Lembaga.update({
         where: { uuid },
@@ -3098,23 +3099,16 @@ export const updateLembaga = async (req, res) => {
       await Promise.all(jabatanPromises);
       console.log("Anggota berhasil diperbarui atau ditambahkan.");
 
-      return updatedLembaga;
-    });
-
-    // Menghapus file lama di luar transaksi
-    if (filePathToDelete) {
-      try {
-        console.log("Memeriksa file untuk dihapus...");
+      // Menghapus file lama di dalam transaksi setelah perubahan
+      if (filePathToDelete) {
+        console.log("Menghapus file lama dalam transaksi...");
         await fs.promises.access(filePathToDelete);
         await fs.promises.unlink(filePathToDelete);
         console.log(`File lama berhasil dihapus: ${filePathToDelete}`);
-      } catch (fileError) {
-        console.error(
-          `Gagal menghapus file lama: ${filePathToDelete}`,
-          fileError
-        );
       }
-    }
+
+      return updatedLembaga;
+    });
 
     res
       .status(200)
