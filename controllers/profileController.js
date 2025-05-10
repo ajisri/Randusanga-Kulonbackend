@@ -2980,8 +2980,9 @@ export const updateLembaga = async (req, res) => {
   const file = req.file;
 
   let parsedJabatans = [];
+  let oldFilePath = null;
 
-  // 1. Parse jabatans dengan validasi
+  // 1. Validasi JSON jabatans
   try {
     parsedJabatans = JSON.parse(jabatans);
     if (!Array.isArray(parsedJabatans)) {
@@ -2997,24 +2998,24 @@ export const updateLembaga = async (req, res) => {
   try {
     console.log("Memulai transaksi...");
 
+    // 2. Jalankan transaksi utama
     const result = await prisma.$transaction(async (tx) => {
-      // 2. Cari lembaga yang ada
       const existingLembaga = await tx.lembaga.findUnique({ where: { uuid } });
       if (!existingLembaga) throw new Error("Lembaga tidak ditemukan");
 
-      const oldFilePath =
-        file && existingLembaga.file_url
-          ? path.normalize(
-              path.join(
-                __dirname,
-                "..",
-                "uploads/lembaga",
-                path.basename(existingLembaga.file_url)
-              )
-            )
-          : null;
+      // Siapkan path file lama untuk dihapus NANTI
+      if (file && existingLembaga.file_url) {
+        oldFilePath = path.normalize(
+          path.join(
+            __dirname,
+            "..",
+            "uploads/lembaga",
+            path.basename(existingLembaga.file_url)
+          )
+        );
+      }
 
-      // 3. Update lembaga dasar
+      // 3. Update data lembaga
       const updatedLembaga = await tx.lembaga.update({
         where: { uuid },
         data: {
@@ -3029,7 +3030,7 @@ export const updateLembaga = async (req, res) => {
       });
 
       // 4. Upsert konten lembaga
-      const kontenPromises = [
+      const kontenUpserts = [
         profil &&
           tx.profilLembaga.upsert({
             where: { lembagaId: uuid },
@@ -3050,9 +3051,9 @@ export const updateLembaga = async (req, res) => {
           }),
       ].filter(Boolean);
 
-      await Promise.all(kontenPromises);
+      await Promise.all(kontenUpserts);
 
-      // 5. Handle anggota
+      // 5. Handle anggota (delete & upsert)
       const existingAnggota = await tx.anggota.findMany({
         where: { lembagaDesaid: uuid },
       });
@@ -3060,14 +3061,10 @@ export const updateLembaga = async (req, res) => {
       const existingUuids = existingAnggota.map((a) => a.uuid);
       const incomingUuids = parsedJabatans.map((j) => j.uuid).filter(Boolean);
 
-      // 5a. Hapus anggota yang tidak ada di list baru
       const deletePromises = existingUuids
         .filter((id) => !incomingUuids.includes(id))
         .map((id) => tx.anggota.delete({ where: { uuid: id } }));
 
-      await Promise.all(deletePromises);
-
-      // 5b. Upsert anggota baru atau update existing
       const upsertPromises = parsedJabatans.map((j) => {
         const data = {
           lembagaDesaid: uuid,
@@ -3085,17 +3082,17 @@ export const updateLembaga = async (req, res) => {
           : tx.anggota.create({ data });
       });
 
-      await Promise.all(upsertPromises);
-
-      // 6. Hapus file lama (di luar transaksi)
-      if (oldFilePath) {
-        await deleteFile(oldFilePath);
-      }
+      await Promise.all([...deletePromises, ...upsertPromises]);
 
       return updatedLembaga;
     });
 
-    // 7. Response sukses
+    // 6. Setelah transaksi: hapus file lama jika ada
+    if (oldFilePath) {
+      await deleteFile(oldFilePath);
+    }
+
+    // 7. Kirim response sukses
     res.status(200).json({
       message: "Lembaga berhasil diperbarui",
       data: result,
