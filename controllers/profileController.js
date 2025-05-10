@@ -3016,7 +3016,7 @@ export const updateLembaga = async (req, res) => {
             create: {
               lembagaId: updatedLembaga.uuid,
               content: profil,
-              createdById: existingLembaga.createdbyId,
+              createdbyId: existingLembaga.createdbyId,
             },
           }),
         visimisi &&
@@ -3026,7 +3026,7 @@ export const updateLembaga = async (req, res) => {
             create: {
               lembagaId: updatedLembaga.uuid,
               content: visimisi,
-              createdById: existingLembaga.createdbyId,
+              createdbyId: existingLembaga.createdbyId,
             },
           }),
         tugaspokok &&
@@ -3036,7 +3036,7 @@ export const updateLembaga = async (req, res) => {
             create: {
               lembagaId: updatedLembaga.uuid,
               content: tugaspokok,
-              createdById: existingLembaga.createdbyId,
+              createdbyId: existingLembaga.createdbyId,
             },
           }),
       ]);
@@ -3095,7 +3095,7 @@ export const updateLembaga = async (req, res) => {
               lembagaDesaid: updatedLembaga.uuid,
               jabatan: jabatanData.namaJabatan,
               demografiDesaid: jabatanData.demografiId,
-              createdById: existingLembaga.createdbyId,
+              createdById: existingLembaga.createdById,
             },
           })
         ),
