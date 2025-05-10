@@ -2978,8 +2978,7 @@ export const updateLembaga = async (req, res) => {
       });
 
       if (!existingLembaga) {
-        res.status(404).json({ message: "Lembaga not found" });
-        throw new Error("Lembaga not found"); // Untuk menghentikan transaksi
+        return res.status(404).json({ message: "Lembaga not found" });
       }
 
       let filePathToDelete = null;
