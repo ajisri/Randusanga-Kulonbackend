@@ -2969,10 +2969,11 @@ export const updateLembaga = async (req, res) => {
     jabatans,
   } = req.body;
   const file = req.file;
+  console.log("Request body:", req.body);
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Check if lembaga exists first
+      // 1. Cari lembaga yang akan diupdate
       const existingLembaga = await tx.Lembaga.findUnique({
         where: { uuid },
       });
@@ -2981,6 +2982,7 @@ export const updateLembaga = async (req, res) => {
         throw new Error("Lembaga not found");
       }
 
+      // 2. Siapkan path file lama untuk dihapus nanti
       let filePathToDelete = null;
       if (file && existingLembaga.file_url) {
         filePathToDelete = path.join(
@@ -2991,7 +2993,7 @@ export const updateLembaga = async (req, res) => {
         );
       }
 
-      // Update lembaga
+      // 3. Update data lembaga utama
       const updatedLembaga = await tx.Lembaga.update({
         where: { uuid },
         data: {
@@ -3005,92 +3007,107 @@ export const updateLembaga = async (req, res) => {
         },
       });
 
-      // Process related data
+      // 4. Update profil, visi misi, dan tugas pokok secara paralel
       await Promise.all([
         profil &&
           tx.ProfilLembaga.upsert({
             where: { lembagaId: updatedLembaga.uuid },
             update: { content: profil },
-            create: { lembagaId: updatedLembaga.uuid, content: profil },
+            create: {
+              lembagaId: updatedLembaga.uuid,
+              content: profil,
+              createdById: existingLembaga.createdbyId,
+            },
           }),
         visimisi &&
           tx.VisiMisi.upsert({
             where: { lembagaId: updatedLembaga.uuid },
             update: { content: visimisi },
-            create: { lembagaId: updatedLembaga.uuid, content: visimisi },
+            create: {
+              lembagaId: updatedLembaga.uuid,
+              content: visimisi,
+              createdById: existingLembaga.createdbyId,
+            },
           }),
         tugaspokok &&
           tx.TugasPokok.upsert({
             where: { lembagaId: updatedLembaga.uuid },
             update: { content: tugaspokok },
-            create: { lembagaId: updatedLembaga.uuid, content: tugaspokok },
+            create: {
+              lembagaId: updatedLembaga.uuid,
+              content: tugaspokok,
+              createdById: existingLembaga.createdbyId,
+            },
           }),
       ]);
 
-      // Process anggota data
+      // 5. Proses data anggota
       const parsedJabatans = JSON.parse(jabatans);
 
-      // Get existing anggota in a single query
-      const existingAnggota = await tx.Anggota.findMany({
+      // Dapatkan semua anggota yang ada
+      const existingAnggota = await tx.anggota.findMany({
         where: { lembagaDesaid: updatedLembaga.uuid },
-        select: { uuid: true },
       });
 
-      const existingAnggotaUuids = existingAnggota.map((a) => a.uuid);
-      const incomingUuids = parsedJabatans
-        .filter((j) => j.uuid)
-        .map((j) => j.uuid);
-
-      // Find uuids to delete (exist in DB but not in incoming data)
-      const uuidsToDelete = existingAnggotaUuids.filter(
-        (uuid) => !incomingUuids.includes(uuid)
+      const existingAnggotaUuids = existingAnggota.map(
+        (anggota) => anggota.uuid
       );
 
-      // Batch delete
-      if (uuidsToDelete.length > 0) {
-        await tx.Anggota.deleteMany({
-          where: { uuid: { in: uuidsToDelete } },
-        });
-      }
+      // Anggota yang akan dihapus (ada di database tapi tidak di input baru)
+      const anggotaToDelete = existingAnggota.filter(
+        (anggota) => !parsedJabatans.some((j) => j.uuid === anggota.uuid)
+      );
 
-      // Process updates and creates
-      const updateOperations = parsedJabatans.map((jabatanData) => {
-        const data = {
-          lembagaDesaid: updatedLembaga.uuid,
-          jabatan: jabatanData.namaJabatan,
-          demografiDesaid: jabatanData.demografiId,
-        };
+      // Anggota yang akan diupdate/dibuat
+      const anggotaToUpsert = parsedJabatans.filter(
+        (j) => !j.uuid || existingAnggotaUuids.includes(j.uuid)
+      );
 
-        if (jabatanData.uuid) {
-          return tx.Anggota.update({
+      // Anggota yang akan dibuat baru
+      const anggotaToCreate = parsedJabatans.filter(
+        (j) => !j.uuid && !existingAnggotaUuids.includes(j.uuid)
+      );
+
+      // Eksekusi operasi database
+      await Promise.all([
+        // Hapus anggota yang tidak diperlukan
+        ...anggotaToDelete.map((anggota) =>
+          tx.anggota.delete({
+            where: { uuid: anggota.uuid },
+          })
+        ),
+
+        // Update anggota yang ada
+        ...anggotaToUpsert.map((jabatanData) =>
+          tx.anggota.update({
             where: { uuid: jabatanData.uuid },
-            data,
-          });
-        } else {
-          return tx.Anggota.create({
             data: {
-              ...data,
+              jabatan: jabatanData.namaJabatan,
+              demografiDesaid: jabatanData.demografiId,
+            },
+          })
+        ),
+
+        // Buat anggota baru
+        ...anggotaToCreate.map((jabatanData) =>
+          tx.anggota.create({
+            data: {
+              lembagaDesaid: updatedLembaga.uuid,
+              jabatan: jabatanData.namaJabatan,
+              demografiDesaid: jabatanData.demografiId,
               createdById: existingLembaga.createdbyId,
             },
-          });
-        }
-      });
-
-      await Promise.all(updateOperations);
+          })
+        ),
+      ]);
 
       return updatedLembaga;
     });
 
-    // File deletion should happen AFTER the transaction completes successfully
-    if (file && existingLembaga?.file_url) {
-      const filePathToDelete = path.join(
-        __dirname,
-        "..",
-        "uploads/lembaga",
-        path.basename(existingLembaga.file_url)
-      );
-
+    // Hapus file lama setelah transaksi berhasil
+    if (filePathToDelete) {
       try {
+        await fs.promises.access(filePathToDelete);
         await fs.promises.unlink(filePathToDelete);
         console.log(`Successfully deleted old file: ${filePathToDelete}`);
       } catch (fileError) {
@@ -3106,12 +3123,7 @@ export const updateLembaga = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Error updating lembaga:", error);
-
-    if (error.message === "Lembaga not found") {
-      return res.status(404).json({ message: error.message });
-    }
-
+    console.error("Error updating lembaga:", error.message, error.stack);
     res.status(500).json({
       message: "Error updating lembaga",
       error: error.message,
