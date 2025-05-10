@@ -3011,7 +3011,10 @@ export const updateLembaga = async (req, res) => {
       );
     }
 
+    console.log("Sebelum transaction");
+
     const updatedLembaga = await prisma.$transaction(async (tx) => {
+      console.log("Transaction dimulai");
       // Update lembaga
       const lembaga = await tx.lembaga.update({
         where: { uuid },
@@ -3055,7 +3058,7 @@ export const updateLembaga = async (req, res) => {
       const existingAnggota = await tx.anggota.findMany({
         where: { lembagaDesaid: uuid },
       });
-
+      console.log("Jumlah anggota:", existingAnggota.length);
       const existingUuids = existingAnggota.map((a) => a.uuid);
       const incomingUuids = parsedJabatans.map((j) => j.uuid).filter(Boolean);
 
@@ -3088,7 +3091,7 @@ export const updateLembaga = async (req, res) => {
 
       return lembaga;
     });
-
+    console.log("Transaction selesai");
     if (oldFilePath) {
       await deleteFile(oldFilePath);
     }
