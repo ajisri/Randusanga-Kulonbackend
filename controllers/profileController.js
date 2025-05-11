@@ -2967,6 +2967,7 @@ export const createLembaga = async (req, res) => {
 //update lembaga
 export const updateLembaga = async (req, res) => {
   const { uuid } = req.params;
+  const file = req.file;
   const {
     nama,
     singkatan,
@@ -2977,24 +2978,21 @@ export const updateLembaga = async (req, res) => {
     tugaspokok,
     jabatans,
   } = req.body;
-  const file = req.file;
 
+  // 1. Validasi awal
   let parsedJabatans = [];
   try {
-    parsedJabatans = JSON.parse(jabatans);
-    if (!Array.isArray(parsedJabatans)) {
-      return res.status(400).json({ message: "Jabatans harus berupa array" });
-    }
+    parsedJabatans = JSON.parse(jabatans || "[]");
+    if (!Array.isArray(parsedJabatans)) throw new Error("Jabatans harus array");
   } catch (err) {
     return res.status(400).json({
-      message: "Format jabatans tidak valid (harus JSON array)",
+      message: "Format jabatans tidak valid",
       error: err.message,
     });
   }
 
-  let oldFilePath = null;
-
   try {
+    // 2. Ambil lembaga
     const existingLembaga = await prisma.lembaga.findUnique({
       where: { uuid },
     });
@@ -3002,109 +3000,103 @@ export const updateLembaga = async (req, res) => {
       return res.status(404).json({ message: "Lembaga tidak ditemukan" });
     }
 
-    if (file && existingLembaga.file_url) {
-      oldFilePath = path.join(
-        __dirname,
-        "..",
-        "uploads/lembaga",
-        path.basename(existingLembaga.file_url)
-      );
+    const createdById = existingLembaga.createdbyId;
+    const oldFilePath =
+      file && existingLembaga.file_url
+        ? path.join(
+            __dirname,
+            "..",
+            "uploads/lembaga",
+            path.basename(existingLembaga.file_url)
+          )
+        : null;
+
+    // 3. Update lembaga & konten saja dulu
+    await prisma.$transaction(
+      [
+        prisma.lembaga.update({
+          where: { uuid },
+          data: {
+            nama,
+            singkatan,
+            dasar_hukum,
+            alamat_kantor,
+            file_url: file
+              ? `uploads/lembaga/${file.filename}`
+              : existingLembaga.file_url,
+          },
+        }),
+        profil &&
+          prisma.profilLembaga.upsert({
+            where: { lembagaId: uuid },
+            update: { content: profil },
+            create: { lembagaId: uuid, content: profil },
+          }),
+        visimisi &&
+          prisma.visiMisi.upsert({
+            where: { lembagaId: uuid },
+            update: { content: visimisi },
+            create: { lembagaId: uuid, content: visimisi },
+          }),
+        tugaspokok &&
+          prisma.tugasPokok.upsert({
+            where: { lembagaId: uuid },
+            update: { content: tugaspokok },
+            create: { lembagaId: uuid, content: tugaspokok },
+          }),
+      ].filter(Boolean)
+    ); // Hilangkan null jika tidak ada konten
+
+    // 4. Tangani anggota (di luar transaksi konten)
+    const existingAnggota = await prisma.anggota.findMany({
+      where: { lembagaDesaid: uuid },
+    });
+    const existingUuids = existingAnggota.map((a) => a.uuid);
+    const incomingUuids = parsedJabatans.map((j) => j.uuid).filter(Boolean);
+
+    // Hapus yang tidak dikirim ulang
+    const toDelete = existingUuids.filter((id) => !incomingUuids.includes(id));
+    if (toDelete.length > 0) {
+      await prisma.anggota.deleteMany({
+        where: { uuid: { in: toDelete } },
+      });
     }
 
-    console.log("Sebelum transaction");
-
-    const updatedLembaga = await prisma.$transaction(async (tx) => {
-      console.log("Transaction dimulai");
-      // Update lembaga
-      const lembaga = await tx.lembaga.update({
-        where: { uuid },
-        data: {
-          nama,
-          singkatan,
-          dasar_hukum,
-          alamat_kantor,
-          file_url: file
-            ? `uploads/lembaga/${file.filename}`
-            : existingLembaga.file_url,
-        },
-      });
-
-      // Upsert konten
-      if (profil) {
-        await tx.profilLembaga.upsert({
-          where: { lembagaId: uuid },
-          update: { content: profil },
-          create: { lembagaId: uuid, content: profil },
-        });
-      }
-
-      if (visimisi) {
-        await tx.visiMisi.upsert({
-          where: { lembagaId: uuid },
-          update: { content: visimisi },
-          create: { lembagaId: uuid, content: visimisi },
-        });
-      }
-
-      if (tugaspokok) {
-        await tx.tugasPokok.upsert({
-          where: { lembagaId: uuid },
-          update: { content: tugaspokok },
-          create: { lembagaId: uuid, content: tugaspokok },
-        });
-      }
-
-      // Ambil semua anggota lama
-      const existingAnggota = await tx.anggota.findMany({
-        where: { lembagaDesaid: uuid },
-      });
-      console.log("Jumlah anggota:", existingAnggota.length);
-      const existingUuids = existingAnggota.map((a) => a.uuid);
-      const incomingUuids = parsedJabatans.map((j) => j.uuid).filter(Boolean);
-
-      // Hapus yang tidak ada di list baru
-      for (const id of existingUuids) {
-        if (!incomingUuids.includes(id)) {
-          await tx.anggota.delete({ where: { uuid: id } });
-        }
-      }
-
-      // Upsert atau create anggota baru
-      for (const j of parsedJabatans) {
-        const data = {
-          lembagaDesaid: uuid,
-          jabatan: j.namaJabatan,
-          demografiDesaid: j.demografiId,
-          createdById: existingLembaga.createdbyId,
-        };
-
-        if (j.uuid) {
-          await tx.anggota.upsert({
+    // Upsert anggota baru/yang dikirim
+    const upsertAnggota = parsedJabatans.map((j) => {
+      const data = {
+        lembagaDesaid: uuid,
+        jabatan: j.namaJabatan,
+        demografiDesaid: j.demografiId,
+        createdById,
+      };
+      return j.uuid
+        ? prisma.anggota.upsert({
             where: { uuid: j.uuid },
             update: data,
             create: data,
-          });
-        } else {
-          await tx.anggota.create({ data });
-        }
-      }
-
-      return lembaga;
+          })
+        : prisma.anggota.create({ data });
     });
-    console.log("Transaction selesai");
+    await prisma.$transaction(upsertAnggota);
+
+    // 5. Hapus file lama jika perlu
     if (oldFilePath) {
-      await deleteFile(oldFilePath);
+      try {
+        await fs.unlink(oldFilePath);
+      } catch (err) {
+        console.warn("Gagal hapus file lama:", err.message);
+      }
     }
 
     res.status(200).json({
       message: "Lembaga berhasil diperbarui",
-      data: updatedLembaga,
     });
-  } catch (error) {
-    console.error("Gagal memperbarui lembaga:", error.message);
+  } catch (err) {
+    console.error("Gagal memperbarui lembaga:", err);
     res.status(500).json({
       message: "Terjadi kesalahan saat memperbarui lembaga",
-      error: error.message,
+      error: err.message,
     });
   }
 };
